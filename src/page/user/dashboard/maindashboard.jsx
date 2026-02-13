@@ -2,61 +2,250 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import BottomNav from '../../../components/BottomNav/BottomNav';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+// Airtable Functions
+const fetchUserTDEE = async (lineUid) => {
+  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
+  const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
+  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
+  
+  const url = `https://api.airtable.com/v0/${baseId}/${tableId}?filterByFormula=${encodeURIComponent(`line_uid='${lineUid}'`)}`;
+  
+  try {
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${apiToken}` }
+    });
+    const data = await response.json();
+    if (data.records && data.records.length > 0) {
+      return data.records[0].fields.Cal || 2000;
+    }
+    return 2000;
+  } catch (error) {
+    console.error('Error fetching TDEE:', error);
+    return 2000;
+  }
+};
+
+const fetchFoodRecords = async (lineUid, selectedDate) => {
+  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
+  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
+  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
+  
+  const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!data.records) return [];
+    
+    const records = data.records
+      .filter(record => {
+        const fields = record.fields;
+        if (fields.line_uid !== lineUid) return false;
+        const recordDate = fields.date || '2000-01-01T00:00:00.000Z';
+        const recordDateTime = new Date(recordDate);
+        const recordDateStr = recordDateTime.toISOString().split('T')[0];
+        return recordDateStr === selectedDate;
+      })
+      .map(record => ({
+        id: record.id,
+        menu: record.fields.menu || 'ไม่ระบุเมนู',
+        date: record.fields.date,
+        cal: record.fields.cal || 0,
+        protein: record.fields.protine || 0,
+        carb: record.fields.carb || 0,
+        fat: record.fields.fat || 0,
+        image: record.fields.image?.[0]?.url || null
+      }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    return records;
+  } catch (error) {
+    console.error('Error fetching food records:', error);
+    return [];
+  }
+};
+
+const addFoodRecord = async (lineUid, foodData) => {
+  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
+  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
+  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
+  
+  const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: {
+          line_uid: lineUid,
+          menu: foodData.menu,
+          cal: foodData.cal,
+          protine: foodData.protein,
+          carb: foodData.carb,
+          fat: foodData.fat,
+          date: new Date().toISOString()
+        }
+      })
+    });
+    
+    if (response.ok) {
+      return await response.json();
+    }
+    return null;
+  } catch (error) {
+    console.error('Error adding food record:', error);
+    return null;
+  }
+};
+
+// Gemini AI Function
+const analyzeFoodImage = async (imageFile) => {
+  try {
+    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    
+    const base64Image = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(imageFile);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+    
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    
+    const prompt = `วิเคราะห์รูปอาหารนี้และส่งข้อมูลกลับมาในรูปแบบ JSON เท่านั้น:
+{
+  "menu": "ชื่ออาหาร (ภาษาไทย)",
+  "cal": จำนวนแคลอรี่ (ตัวเลข),
+  "protein": จำนวนโปรตีน (กรัม, ตัวเลข),
+  "carb": จำนวนคาร์โบไฮเดรต (กรัม, ตัวเลข),
+  "fat": จำนวนไขมัน (กรัม, ตัวเลข)
+}
+ส่งเฉพาะ JSON เท่านั้น`;
+
+    const imagePart = {
+      inlineData: {
+        data: base64Image.split(',')[1],
+        mimeType: imageFile.type
+      }
+    };
+
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = await result.response;
+    const text = response.text();
+    
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error('ไม่สามารถแปลง response เป็น JSON ได้');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    throw error;
+  }
+};
 
 const MainDashboard = () => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [displayDate, setDisplayDate] = useState(new Date().toISOString().split('T')[0]);
   const [animatedPercentage, setAnimatedPercentage] = useState(0);
   const [animatedCal, setAnimatedCal] = useState(0);
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [userTDEE, setUserTDEE] = useState(2000);
+  const [foodRecords, setFoodRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [showNoDataModal, setShowNoDataModal] = useState(false);
   
-  // Mock data
-  const mockUser = {
-    name: 'สมชาย ใจดี',
-    profilePic: 'https://via.placeholder.com/60',
-    tdee: 2000
+  // ดึงข้อมูล user จาก localStorage (จาก LINE Login)
+  const user = React.useMemo(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      return JSON.parse(userStr);
+    }
+    return null;
+  }, []);
+  
+  // ถ้าไม่มี user ให้กลับไปหน้า login
+  useEffect(() => {
+    if (!user) {
+      navigate('/linelogin');
+    }
+  }, [user, navigate]);
+
+  // ดึงข้อมูล TDEE และรายการอาหารครั้งแรก
+  useEffect(() => {
+    if (!user || !user.id) return;
+    
+    const loadData = async () => {
+      setInitialLoading(true);
+      try {
+        // ดึง TDEE
+        const tdee = await fetchUserTDEE(user.id);
+        setUserTDEE(tdee);
+        
+        // ดึงรายการอาหาร
+        const records = await fetchFoodRecords(user.id, displayDate);
+        setFoodRecords(records);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [user?.id, displayDate]);
+
+  // ฟังก์ชันสำหรับกดปุ่ม "ดู"
+  const handleViewDate = async () => {
+    if (!user || !user.id) return;
+    
+    setLoading(true);
+    try {
+      const records = await fetchFoodRecords(user.id, selectedDate);
+      setFoodRecords(records);
+      setDisplayDate(selectedDate);
+      
+      // ถ้าไม่มีข้อมูล แสดง popup
+      if (records.length === 0) {
+        setShowNoDataModal(true);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const mockFoodRecords = [
-    {
-      id: 1,
-      menu: 'ข้าวผัดกุ้ง',
-      date: new Date().toISOString(),
-      cal: 450,
-      protein: 25,
-      carb: 60,
-      fat: 12,
-      image: 'https://via.placeholder.com/60'
-    },
-    {
-      id: 2,
-      menu: 'ส้มตำไทย',
-      date: new Date().toISOString(),
-      cal: 120,
-      protein: 5,
-      carb: 20,
-      fat: 3,
-      image: 'https://via.placeholder.com/60'
-    },
-    {
-      id: 3,
-      menu: 'ไก่ย่าง',
-      date: new Date().toISOString(),
-      cal: 280,
-      protein: 35,
-      carb: 5,
-      fat: 15,
-      image: 'https://via.placeholder.com/60'
-    }
-  ];
+  const mockUser = {
+    name: user?.name || 'ผู้ใช้งาน',
+    profilePic: user?.picture || 'https://via.placeholder.com/60',
+    tdee: userTDEE
+  };
 
   // คำนวณสรุปโภชนาการ
-  const totalCal = mockFoodRecords.reduce((sum, item) => sum + item.cal, 0);
-  const totalProtein = mockFoodRecords.reduce((sum, item) => sum + item.protein, 0);
-  const totalCarb = mockFoodRecords.reduce((sum, item) => sum + item.carb, 0);
-  const totalFat = mockFoodRecords.reduce((sum, item) => sum + item.fat, 0);
+  const totalCal = foodRecords.reduce((sum, item) => sum + item.cal, 0);
+  const totalProtein = foodRecords.reduce((sum, item) => sum + item.protein, 0);
+  const totalCarb = foodRecords.reduce((sum, item) => sum + item.carb, 0);
+  const totalFat = foodRecords.reduce((sum, item) => sum + item.fat, 0);
 
   // คำนวณแคลอรี่จากโภชนาการ (มาตรฐาน: โปรตีน 4 kcal/g, คาร์บ 4 kcal/g, ไขมัน 9 kcal/g)
   const proteinCal = totalProtein * 4;
@@ -161,36 +350,59 @@ const MainDashboard = () => {
     setShowCameraModal(true);
   };
 
-  const handleCameraCapture = () => {
+  const handleCameraCapture = async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'camera'; // บังคับให้เปิดกล้อง
+    input.capture = 'camera';
     
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = e.target.files[0];
       if (file) {
-        console.log('Captured image:', file);
-        alert('ถ่ายรูปสำเร็จ: ' + file.name);
         setShowCameraModal(false);
+        setIsAnalyzing(true);
+        
+        try {
+          console.log('กำลังวิเคราะห์รูปภาพ...');
+          const foodData = await analyzeFoodImage(file);
+          console.log('✅ ผลการวิเคราะห์:', foodData);
+          
+          alert(`วิเคราะห์รูปภาพสำเร็จ!\n\nเมนู: ${foodData.menu}\nแคลอรี่: ${foodData.cal} kcal\nโปรตีน: ${foodData.protein}g\nคาร์บ: ${foodData.carb}g\nไขมัน: ${foodData.fat}g`);
+        } catch (error) {
+          console.error('❌ เกิดข้อผิดพลาด:', error);
+          alert('ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองใหม่');
+        } finally {
+          setIsAnalyzing(false);
+        }
       }
     };
     
     input.click();
   };
 
-  const handleGallerySelect = () => {
+  const handleGallerySelect = async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    // ไม่ใส่ capture เพื่อให้เลือกจากแกลเลอรี่
     
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = e.target.files[0];
       if (file) {
-        console.log('Selected image:', file);
-        alert('เลือกรูปสำเร็จ: ' + file.name);
         setShowCameraModal(false);
+        setIsAnalyzing(true);
+        
+        try {
+          console.log('กำลังวิเคราะห์รูปภาพ...');
+          const foodData = await analyzeFoodImage(file);
+          console.log('✅ ผลการวิเคราะห์:', foodData);
+          
+          alert(`วิเคราะห์รูปภาพสำเร็จ!\n\nเมนู: ${foodData.menu}\nแคลอรี่: ${foodData.cal} kcal\nโปรตีน: ${foodData.protein}g\nคาร์บ: ${foodData.carb}g\nไขมัน: ${foodData.fat}g`);
+        } catch (error) {
+          console.error('❌ เกิดข้อผิดพลาด:', error);
+          alert('ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองใหม่');
+        } finally {
+          setIsAnalyzing(false);
+        }
       }
     };
     
@@ -213,12 +425,12 @@ const MainDashboard = () => {
 
   return (
     <div 
-      className="min-h-screen bg-[#f2f2f7]" 
+      className="min-h-screen bg-[#f2f2f7] pb-20" 
       style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
     >
       {/* Navbar */}
       <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-6 shadow-sm">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto flex justify-between items-center">
           <h1 className="text-[28px] font-bold text-white tracking-tight">
             Calories Daily
           </h1>
@@ -250,11 +462,12 @@ const MainDashboard = () => {
             </span>
           </div>
           
-          <div className="h-8 bg-[#e5e5ea] rounded-full overflow-hidden mb-3">
+          <div className="relative h-8 bg-[#e5e5ea] rounded-full overflow-hidden mb-3">
             <div 
-              className={`h-full bg-gradient-to-r ${getProgressColor()} flex items-center justify-center text-white text-[13px] font-semibold transition-all duration-300 ease-out`}
+              className={`absolute inset-0 bg-gradient-to-r ${getProgressColor()} transition-all duration-300 ease-out`}
               style={{ width: `${Math.min(animatedPercentage, 100)}%` }}
-            >
+            />
+            <div className="absolute inset-0 flex items-center justify-center text-[#8e8e93] text-[13px] font-semibold opacity-50">
               {animatedCal} / {mockUser.tdee}
             </div>
           </div>
@@ -340,45 +553,20 @@ const MainDashboard = () => {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="flex-1 px-3 py-2 text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
             />
-            <button className="px-4 py-2 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200">
-              ดู
+            <button 
+              onClick={handleViewDate}
+              disabled={loading}
+              className="px-4 py-2 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'กำลังโหลด...' : 'ดู'}
             </button>
           </div>
         </div>
 
-        {/* Food List Button */}
-        <button 
-          onClick={() => navigate('/foodmenu')}
-          className="w-full bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard animate-delay-400 hover:bg-[#f9f9f9] active:scale-[0.98] transition-all duration-200 text-left"
-        >
-          <div className="flex justify-between items-center">
-            <div>
-              <h5 className="text-[17px] font-semibold text-black mb-1">รายการอาหารวันนี้</h5>
-              <p className="text-[13px] text-[#8e8e93]">ดูรายการอาหารทั้งหมด</p>
-            </div>
-            <svg className="w-6 h-6 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-        {/* Action Buttons */}
-        <div className="space-y-2 pb-6 animate-slideUpCard animate-delay-500">
-          <button 
-            onClick={handleOpenCamera}
-            className="w-full py-3 text-[17px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 shadow-sm flex items-center justify-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            เพิ่มรายการอาหาร
-          </button>
-          <button className="w-full py-3 text-[17px] font-semibold text-green-500 bg-white rounded-[12px] hover:bg-[#f2f2f7] active:scale-[0.98] transition-all duration-200 shadow-sm">
-            รายงานผลประจำสัปดาห์
-          </button>
-        </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNav onCameraClick={handleOpenCamera} />
 
       {/* Camera Modal */}
       {showCameraModal && (
@@ -417,6 +605,51 @@ const MainDashboard = () => {
                   ยกเลิก
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Modal - แสดงเฉพาะตอนกดปุ่ม "ดู" */}
+      {loading && !isAnalyzing && !initialLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-[17px] font-semibold text-black">กำลังโหลดข้อมูล...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Analyzing Modal */}
+      {isAnalyzing && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-[17px] font-semibold text-black">กำลังวิเคราะห์รูปภาพ...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No Data Modal */}
+      {showNoDataModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn" onClick={() => setShowNoDataModal(false)}>
+          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center gap-3">
+              <svg className="w-16 h-16 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <p className="text-[17px] font-semibold text-black text-center">ไม่มีข้อมูล</p>
+              <p className="text-[13px] text-[#8e8e93] text-center">ไม่พบรายการอาหารในวันที่เลือก</p>
+              <button
+                onClick={() => setShowNoDataModal(false)}
+                className="w-full mt-2 py-3 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
+              >
+                ตกลง
+              </button>
             </div>
           </div>
         </div>
