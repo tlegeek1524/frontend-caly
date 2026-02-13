@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (local only)
+.env
+.env.local
+
+# NOTE: .env.production is NOT ignored because we need it for deployment
+# Make sure to keep API keys secure and rotate them if exposed
