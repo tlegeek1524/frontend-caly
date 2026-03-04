@@ -145,6 +145,7 @@ const Regispage = () => {
     setIsUpdating(true); // เริ่ม loading
     
     console.log('Confirmed TDEE:', editableTDEE);
+    console.log('Form data:', formData);
     
     // บันทึกข้อมูลลง Airtable (ถ้ามี)
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -162,22 +163,31 @@ const Regispage = () => {
         });
         const checkData = await checkResponse.json();
         
-        // แปลง TDEE เป็น string เพราะ Airtable field เป็น text
-        const tdeeValue = typeof editableTDEE === 'string' ? editableTDEE : String(editableTDEE);
+        // แปลง TDEE เป็น string
+        const tdeeValue = String(editableTDEE);
         
-        if (!tdeeValue || tdeeValue === '' || isNaN(Number(tdeeValue))) {
+        console.log('TDEE value to save:', tdeeValue);
+        
+        if (!tdeeValue || tdeeValue === '' || tdeeValue === 'NaN' || isNaN(Number(tdeeValue))) {
           console.error('Invalid TDEE value:', editableTDEE);
+          alert('ค่า TDEE ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
           setIsUpdating(false);
-          navigate('/dashboard');
           return;
         }
         
         // ข้อมูลที่จะบันทึก
         const fieldsToUpdate = {
+          Gender: formData.gender,
+          Weight: String(formData.weight),
+          Height: String(formData.height),
+          Age: String(formData.age),
+          'Activity Level': formData.activityLevel,
+          Goal: formData.goal,
           Cal: tdeeValue
         };
         
-        console.log('Updating with:', fieldsToUpdate);
+        console.log('Fields to update:', fieldsToUpdate);
+        console.log('Fields to update (JSON):', JSON.stringify(fieldsToUpdate, null, 2));
         
         if (checkData.records && checkData.records.length > 0) {
           // อัพเดท record เดิม

@@ -66,7 +66,15 @@ const LineCallback = () => {
 
         if (tokenData.id_token) {
           const payload = tokenData.id_token.split('.')[1];
-          const decodedPayload = JSON.parse(atob(payload));
+          // แก้ไขการ decode เพื่อรองรับ UTF-8 (ภาษาไทย, อิโมจิ)
+          const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(
+            atob(base64)
+              .split('')
+              .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+              .join('')
+          );
+          const decodedPayload = JSON.parse(jsonPayload);
           
           profileData.name = decodedPayload.name || '';
           profileData.picture = decodedPayload.picture || '';
