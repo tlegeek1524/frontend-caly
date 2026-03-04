@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import NavbarRegis from './navbarregis/NavbarRegis';
 
 const Regispage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     gender: '',
     weight: '',
@@ -15,6 +17,69 @@ const Regispage = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [editableTDEE, setEditableTDEE] = useState(0);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // ดึงข้อมูลเดิมจาก Airtable เมื่อเปิดหน้า
+  useEffect(() => {
+    const loadExistingData = async () => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!user.id) {
+        setIsLoadingData(false);
+        return;
+      }
+
+      try {
+        const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
+        const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
+        const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
+        
+        const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
+        
+        const response = await fetch(`${url}?filterByFormula=${encodeURIComponent(`line_uid='${user.id}'`)}`, {
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        const data = await response.json();
+        
+        if (data.records && data.records.length > 0) {
+          const record = data.records[0].fields;
+          
+          // แปลง field names จาก Airtable มาเป็น formData
+          const activityLevelMap = {
+            'very_active': 'very_active',
+            'active': 'active',
+            'moderate': 'moderate',
+            'light': 'light',
+            'sedentary': 'sedentary'
+          };
+          
+          setFormData({
+            gender: record.Gender?.toLowerCase() || '',
+            weight: record.Weight || '',
+            height: record.Height || '',
+            age: record.Age || '',
+            activityLevel: activityLevelMap[record['Activity Level']] || '',
+            goal: record.Goal?.toLowerCase() || 'maintain'
+          });
+          
+          // ถ้ามี TDEE อยู่แล้ว ให้แสดงด้วย
+          if (record.Cal) {
+            setResult({
+              bmr: 0, // ไม่มีใน Airtable
+              tdee: parseInt(record.Cal)
+            });
+            setEditableTDEE(parseInt(record.Cal));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading existing data:', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadExistingData();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -75,10 +140,99 @@ const Regispage = () => {
     }, 800);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setShowPopup(false);
-    // ที่นี่สามารถส่งข้อมูลไปยัง API หรือทำอะไรต่อได้
+    setIsUpdating(true); // เริ่ม loading
+    
     console.log('Confirmed TDEE:', editableTDEE);
+    
+    // บันทึกข้อมูลลง Airtable (ถ้ามี)
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.id) {
+      try {
+        const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
+        const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
+        const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
+        
+        const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
+        
+        // เช็คว่ามี record อยู่แล้วหรือไม่
+        const checkResponse = await fetch(`${url}?filterByFormula=${encodeURIComponent(`line_uid='${user.id}'`)}`, {
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        const checkData = await checkResponse.json();
+        
+        // แปลง TDEE เป็น string เพราะ Airtable field เป็น text
+        const tdeeValue = typeof editableTDEE === 'string' ? editableTDEE : String(editableTDEE);
+        
+        if (!tdeeValue || tdeeValue === '' || isNaN(Number(tdeeValue))) {
+          console.error('Invalid TDEE value:', editableTDEE);
+          setIsUpdating(false);
+          navigate('/dashboard');
+          return;
+        }
+        
+        // ข้อมูลที่จะบันทึก
+        const fieldsToUpdate = {
+          Cal: tdeeValue
+        };
+        
+        console.log('Updating with:', fieldsToUpdate);
+        
+        if (checkData.records && checkData.records.length > 0) {
+          // อัพเดท record เดิม
+          const recordId = checkData.records[0].id;
+          const response = await fetch(`${url}/${recordId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${apiToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fields: fieldsToUpdate
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Airtable Error:', errorData);
+            console.log('Existing record fields:', checkData.records[0].fields);
+          } else {
+            console.log('Update successful');
+          }
+        } else {
+          // สร้าง record ใหม่
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fields: {
+                line_uid: user.id,
+                ...fieldsToUpdate
+              }
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Airtable Error:', errorData);
+          } else {
+            console.log('Create successful');
+          }
+        }
+      } catch (error) {
+        console.error('Error saving to Airtable:', error);
+      }
+    }
+    
+    // รอสักครู่แล้วไปหน้า dashboard
+    setTimeout(() => {
+      setIsUpdating(false);
+      navigate('/dashboard');
+    }, 500);
   };
 
   const handleClosePopup = () => {
@@ -90,7 +244,16 @@ const Regispage = () => {
       {/* Navbar */}
       <NavbarRegis />
       
-      <div className="max-w-md mx-auto px-4 py-8">
+      {/* Loading Initial Data */}
+      {isLoadingData ? (
+        <div className="max-w-md mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-[17px] font-semibold text-black">กำลังโหลดข้อมูล...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-md mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-6">
           <h2 className="text-[28px] font-bold text-black tracking-tight mb-2">
@@ -247,6 +410,19 @@ const Regispage = () => {
           </button>
         </form>
       </div>
+      )}
+
+      {/* Updating Modal */}
+      {isUpdating && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-[17px] font-semibold text-black">กำลังอัพเดทข้อมูล...</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Popup Modal */}
       {showPopup && (

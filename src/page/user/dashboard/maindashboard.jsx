@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import BottomNav from '../../../components/BottomNav/BottomNav';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -35,19 +35,34 @@ const fetchFoodRecords = async (lineUid, selectedDate) => {
   const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
   const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
   
-  const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-  
   try {
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await response.json();
-    if (!data.records) return [];
+    let allRecords = [];
+    let offset = null;
     
-    const records = data.records
+    // ดึงข้อมูลทั้งหมดด้วย pagination
+    do {
+      const url = offset 
+        ? `https://api.airtable.com/v0/${baseId}/${tableId}?offset=${offset}`
+        : `https://api.airtable.com/v0/${baseId}/${tableId}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      
+      if (data.records) {
+        allRecords = allRecords.concat(data.records);
+      }
+      
+      offset = data.offset;
+    } while (offset);
+    
+    if (!allRecords.length) return [];
+    
+    const records = allRecords
       .filter(record => {
         const fields = record.fields;
         if (fields.line_uid !== lineUid) return false;
@@ -75,7 +90,95 @@ const fetchFoodRecords = async (lineUid, selectedDate) => {
   }
 };
 
-const addFoodRecord = async (lineUid, foodData) => {
+// ฟังก์ชันอัพโหลดรูปไป ImgBB
+const uploadImageToImgBB = async (imageFile) => {
+  const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+  
+  try {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data.url; // URL ของรูปที่อัพโหลด
+    } else {
+      throw new Error('Failed to upload image');
+    }
+  } catch (error) {
+    console.error('ImgBB upload error:', error);
+    throw error;
+  }
+};
+
+// ฟังก์ชัน compress รูปภาพ
+const compressImage = async (file, maxSizeMB = 1, maxWidthOrHeight = 1920) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // คำนวณขนาดใหม่โดยรักษา aspect ratio
+        if (width > height) {
+          if (width > maxWidthOrHeight) {
+            height *= maxWidthOrHeight / width;
+            width = maxWidthOrHeight;
+          }
+        } else {
+          if (height > maxWidthOrHeight) {
+            width *= maxWidthOrHeight / height;
+            height = maxWidthOrHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // ลด quality จนกว่าจะได้ขนาดที่ต้องการ
+        let quality = 0.9;
+        const tryCompress = () => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob.size > maxSizeMB * 1024 * 1024 && quality > 0.1) {
+                quality -= 0.1;
+                tryCompress();
+              } else {
+                // แปลง blob เป็น file
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+
+        tryCompress();
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+};
+
+const addFoodRecord = async (lineUid, foodData, imageFile) => {
   const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
   const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
   const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
@@ -83,6 +186,24 @@ const addFoodRecord = async (lineUid, foodData) => {
   const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
   
   try {
+    // Compress และอัพโหลดรูปภาพ
+    let imageAttachment = null;
+    if (imageFile) {
+      console.log('ขนาดรูปต้นฉบับ:', (imageFile.size / 1024 / 1024).toFixed(2), 'MB');
+      
+      const compressedFile = await compressImage(imageFile, 1, 1920);
+      console.log('ขนาดรูปหลัง compress:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+      
+      // อัพโหลดไป ImgBB
+      const imageUrl = await uploadImageToImgBB(compressedFile);
+      console.log('Image URL:', imageUrl);
+      
+      // Airtable รับ attachment ในรูปแบบ URL
+      imageAttachment = [{
+        url: imageUrl
+      }];
+    }
+    
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -97,26 +218,33 @@ const addFoodRecord = async (lineUid, foodData) => {
           protine: foodData.protein,
           carb: foodData.carb,
           fat: foodData.fat,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          ...(imageAttachment && { image: imageAttachment })
         }
       })
     });
     
-    if (response.ok) {
-      return await response.json();
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Airtable Error:', errorData);
+      throw new Error(errorData.error?.message || 'Failed to save record');
     }
-    return null;
+    
+    return await response.json();
   } catch (error) {
     console.error('Error adding food record:', error);
     return null;
   }
 };
 
-// Gemini AI Function
+// OpenAI GPT Function
 const analyzeFoodImage = async (imageFile) => {
   try {
-    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-    const genAI = new GoogleGenerativeAI(API_KEY);
+    const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+    const openai = new OpenAI({
+      apiKey: API_KEY,
+      dangerouslyAllowBrowser: true // สำหรับใช้ใน browser
+    });
     
     const base64Image = await new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -124,8 +252,6 @@ const analyzeFoodImage = async (imageFile) => {
       reader.onload = () => resolve(reader.result);
       reader.onerror = error => reject(error);
     });
-    
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const prompt = `วิเคราะห์รูปอาหารนี้และส่งข้อมูลกลับมาในรูปแบบ JSON เท่านั้น:
 {
@@ -137,16 +263,26 @@ const analyzeFoodImage = async (imageFile) => {
 }
 ส่งเฉพาะ JSON เท่านั้น`;
 
-    const imagePart = {
-      inlineData: {
-        data: base64Image.split(',')[1],
-        mimeType: imageFile.type
-      }
-    };
-
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: base64Image
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 500
+    });
+    
+    const text = response.choices[0].message.content;
     
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -168,11 +304,15 @@ const MainDashboard = () => {
   const [animatedCal, setAnimatedCal] = useState(0);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [userTDEE, setUserTDEE] = useState(2000);
+  const [userTDEE, setUserTDEE] = useState(null);
   const [foodRecords, setFoodRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [showNoDataModal, setShowNoDataModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingFoodData, setPendingFoodData] = useState(null);
+  const [pendingImageFile, setPendingImageFile] = useState(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState(null);
   
   // ดึงข้อมูล user จาก localStorage (จาก LINE Login)
   const user = React.useMemo(() => {
@@ -238,7 +378,7 @@ const MainDashboard = () => {
   const mockUser = {
     name: user?.name || 'ผู้ใช้งาน',
     profilePic: user?.picture || 'https://via.placeholder.com/60',
-    tdee: userTDEE
+    tdee: userTDEE || 0
   };
 
   // คำนวณสรุปโภชนาการ
@@ -363,11 +503,18 @@ const MainDashboard = () => {
         setIsAnalyzing(true);
         
         try {
+          // สร้าง preview URL
+          const previewUrl = URL.createObjectURL(file);
+          
           console.log('กำลังวิเคราะห์รูปภาพ...');
           const foodData = await analyzeFoodImage(file);
           console.log('✅ ผลการวิเคราะห์:', foodData);
           
-          alert(`วิเคราะห์รูปภาพสำเร็จ!\n\nเมนู: ${foodData.menu}\nแคลอรี่: ${foodData.cal} kcal\nโปรตีน: ${foodData.protein}g\nคาร์บ: ${foodData.carb}g\nไขมัน: ${foodData.fat}g`);
+          // แสดง modal ให้ user ตรวจสอบข้อมูล
+          setPendingFoodData(foodData);
+          setPendingImageFile(file);
+          setPendingImagePreview(previewUrl);
+          setShowConfirmModal(true);
         } catch (error) {
           console.error('❌ เกิดข้อผิดพลาด:', error);
           alert('ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองใหม่');
@@ -392,11 +539,18 @@ const MainDashboard = () => {
         setIsAnalyzing(true);
         
         try {
+          // สร้าง preview URL
+          const previewUrl = URL.createObjectURL(file);
+          
           console.log('กำลังวิเคราะห์รูปภาพ...');
           const foodData = await analyzeFoodImage(file);
           console.log('✅ ผลการวิเคราะห์:', foodData);
           
-          alert(`วิเคราะห์รูปภาพสำเร็จ!\n\nเมนู: ${foodData.menu}\nแคลอรี่: ${foodData.cal} kcal\nโปรตีน: ${foodData.protein}g\nคาร์บ: ${foodData.carb}g\nไขมัน: ${foodData.fat}g`);
+          // แสดง modal ให้ user ตรวจสอบข้อมูล
+          setPendingFoodData(foodData);
+          setPendingImageFile(file);
+          setPendingImagePreview(previewUrl);
+          setShowConfirmModal(true);
         } catch (error) {
           console.error('❌ เกิดข้อผิดพลาด:', error);
           alert('ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองใหม่');
@@ -407,6 +561,52 @@ const MainDashboard = () => {
     };
     
     input.click();
+  };
+
+  const handleConfirmSave = async () => {
+    if (!pendingFoodData || !user?.id) return;
+    
+    setShowConfirmModal(false);
+    setLoading(true);
+    
+    try {
+      // บันทึกข้อมูลพร้อมรูปภาพลง Airtable
+      const result = await addFoodRecord(user.id, pendingFoodData, pendingImageFile);
+      
+      if (result) {
+        // แสดง URL ของรูปที่อัพโหลด
+        const uploadedImageUrl = result.fields?.image?.[0]?.url;
+        if (uploadedImageUrl) {
+          alert(`บันทึกข้อมูลสำเร็จ!\n\nURL รูปภาพ:\n${uploadedImageUrl}`);
+        } else {
+          alert('บันทึกข้อมูลสำเร็จ!');
+        }
+        
+        // รีโหลดข้อมูล
+        const records = await fetchFoodRecords(user.id, displayDate);
+        setFoodRecords(records);
+      } else {
+        alert('บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่');
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึก');
+    } finally {
+      setLoading(false);
+      setPendingFoodData(null);
+      setPendingImageFile(null);
+    }
+  };
+
+  const handleCancelSave = () => {
+    setShowConfirmModal(false);
+    setPendingFoodData(null);
+    setPendingImageFile(null);
+    // ลบ preview URL เพื่อป้องกัน memory leak
+    if (pendingImagePreview) {
+      URL.revokeObjectURL(pendingImagePreview);
+      setPendingImagePreview(null);
+    }
   };
 
   const getProgressColor = () => {
@@ -448,7 +648,9 @@ const MainDashboard = () => {
             />
             <div>
               <h3 className="text-[17px] font-semibold text-black">{mockUser.name}</h3>
-              <p className="text-[13px] text-[#8e8e93]">เป้าหมาย: {mockUser.tdee.toLocaleString()} kcal/วัน</p>
+              <p className="text-[13px] text-[#8e8e93]">
+                เป้าหมาย: {userTDEE ? userTDEE.toLocaleString() : '-'} kcal/วัน
+              </p>
             </div>
           </div>
         </div>
@@ -468,7 +670,7 @@ const MainDashboard = () => {
               style={{ width: `${Math.min(animatedPercentage, 100)}%` }}
             />
             <div className="absolute inset-0 flex items-center justify-center text-[#8e8e93] text-[13px] font-semibold opacity-50">
-              {animatedCal} / {mockUser.tdee}
+              {animatedCal} / {userTDEE || '-'}
             </div>
           </div>
 
@@ -480,15 +682,18 @@ const MainDashboard = () => {
               <div className="text-[11px] text-[#8e8e93]">บริโภคแล้ว</div>
             </div>
             <div>
-              <div className="text-[20px] font-bold text-black">{mockUser.tdee.toLocaleString()}</div>
+              <div className="text-[20px] font-bold text-black">
+                {userTDEE ? userTDEE.toLocaleString() : '-'}
+              </div>
               <div className="text-[11px] text-[#8e8e93]">เป้าหมาย</div>
             </div>
             <div>
               <div className={`text-[20px] font-bold transition-all duration-300 ${remainingCalories >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {remainingCalories >= 0 
-                  ? (mockUser.tdee - animatedCal).toLocaleString() 
-                  : `+${Math.abs(mockUser.tdee - animatedCal).toLocaleString()}`
-                }
+                {userTDEE ? (
+                  remainingCalories >= 0 
+                    ? (mockUser.tdee - animatedCal).toLocaleString() 
+                    : `+${Math.abs(mockUser.tdee - animatedCal).toLocaleString()}`
+                ) : '-'}
               </div>
               <div className="text-[11px] text-[#8e8e93]">{remainingCalories >= 0 ? 'เหลือ' : 'เกิน'}</div>
             </div>
@@ -507,7 +712,7 @@ const MainDashboard = () => {
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div className="text-[24px] font-bold text-black">{Math.round(totalNutritionCal)}</div>
-              <div className="text-[11px] text-[#8e8e93]">/ {mockUser.tdee} kcal</div>
+              <div className="text-[11px] text-[#8e8e93]">/ {userTDEE || '-'} kcal</div>
             </div>
           </div>
 
@@ -649,6 +854,105 @@ const MainDashboard = () => {
                 className="w-full mt-2 py-3 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
               >
                 ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Food Data Modal */}
+      {showConfirmModal && pendingFoodData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn p-4" onClick={handleCancelSave}>
+          <div className="bg-white rounded-[20px] p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto animate-slideUp" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[20px] font-semibold text-black text-center mb-4">ตรวจสอบข้อมูล</h3>
+            
+            {/* แสดงรูปภาพ */}
+            {pendingImagePreview && (
+              <div className="mb-4">
+                <img 
+                  src={pendingImagePreview} 
+                  alt="Food preview" 
+                  className="w-full h-48 object-cover rounded-[12px]"
+                />
+              </div>
+            )}
+            
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between items-center">
+                <span className="text-[15px] text-[#8e8e93]">เมนู:</span>
+                <input
+                  type="text"
+                  value={pendingFoodData.menu}
+                  onChange={(e) => setPendingFoodData({...pendingFoodData, menu: e.target.value})}
+                  className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none flex-1 ml-2"
+                />
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-[15px] text-[#8e8e93]">แคลอรี่:</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={pendingFoodData.cal}
+                    onChange={(e) => setPendingFoodData({...pendingFoodData, cal: Number(e.target.value)})}
+                    className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                  />
+                  <span className="text-[13px] text-[#8e8e93]">kcal</span>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-[15px] text-[#8e8e93]">โปรตีน:</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={pendingFoodData.protein}
+                    onChange={(e) => setPendingFoodData({...pendingFoodData, protein: Number(e.target.value)})}
+                    className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                  />
+                  <span className="text-[13px] text-[#8e8e93]">g</span>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-[15px] text-[#8e8e93]">คาร์บ:</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={pendingFoodData.carb}
+                    onChange={(e) => setPendingFoodData({...pendingFoodData, carb: Number(e.target.value)})}
+                    className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                  />
+                  <span className="text-[13px] text-[#8e8e93]">g</span>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-[15px] text-[#8e8e93]">ไขมัน:</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={pendingFoodData.fat}
+                    onChange={(e) => setPendingFoodData({...pendingFoodData, fat: Number(e.target.value)})}
+                    className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                  />
+                  <span className="text-[13px] text-[#8e8e93]">g</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancelSave}
+                className="flex-1 py-3 text-[15px] font-semibold text-red-500 bg-[#f2f2f7] rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                className="flex-1 py-3 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
+              >
+                บันทึก
               </button>
             </div>
           </div>

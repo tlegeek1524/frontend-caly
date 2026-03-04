@@ -1,12 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const LineCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
     const handleCallback = async () => {
+      // ป้องกันการรันซ้ำใน React Strict Mode
+      if (hasProcessed.current) return;
+      hasProcessed.current = true;
+
       const code = searchParams.get('code');
       const state = searchParams.get('state');
       const savedState = sessionStorage.getItem('line_login_state');
@@ -83,14 +88,15 @@ const LineCallback = () => {
 
         profileData.userId = profile.userId;
 
-        // เช็คว่า user มีอยู่ใน Airtable หรือไม่
+        // เช็คว่า user มีข้อมูล Cal (TDEE) ใน Airtable หรือไม่
         const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
         const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
         const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
         
         const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
         
-        const airtableResponse = await fetch(airtableUrl, {
+        // ใช้ filterByFormula เพื่อค้นหาเฉพาะ user นี้
+        const airtableResponse = await fetch(`${airtableUrl}?filterByFormula=${encodeURIComponent(`line_uid='${profileData.userId}'`)}`, {
           headers: {
             'Authorization': `Bearer ${apiToken}`,
             'Content-Type': 'application/json'
@@ -99,11 +105,12 @@ const LineCallback = () => {
 
         const airtableData = await airtableResponse.json();
         
-        let foundUser = false;
-        if (airtableData.records) {
-          foundUser = airtableData.records.some(record => 
-            record.fields.line_uid === profileData.userId
-          );
+        // เช็คว่ามี record และมีค่า Cal (TDEE) หรือไม่
+        let hasCalData = false;
+        if (airtableData.records && airtableData.records.length > 0) {
+          const userRecord = airtableData.records[0].fields;
+          // เช็คว่ามี Cal และไม่เป็นค่าว่าง
+          hasCalData = userRecord.Cal && userRecord.Cal !== '' && userRecord.Cal !== '0';
         }
 
         // เก็บข้อมูล user
@@ -119,8 +126,8 @@ const LineCallback = () => {
         localStorage.setItem('user', JSON.stringify(user));
         sessionStorage.removeItem('line_login_state');
 
-        // ถ้ามี user ใน Airtable ไป dashboard, ถ้าไม่มีไป regis
-        if (foundUser) {
+        // ถ้ามีข้อมูล Cal (TDEE) ไป dashboard, ถ้าไม่มีไป regis
+        if (hasCalData) {
           navigate('/dashboard');
         } else {
           navigate('/regis');
