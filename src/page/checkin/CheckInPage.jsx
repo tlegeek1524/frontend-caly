@@ -230,10 +230,6 @@ const CheckInPage = () => {
 
   // Main Background Submit Process
   const handleFormSubmit = async () => {
-    if (!imageFile) {
-      setSubmitError("กรุณาเลือกหรือถ่ายรูปภาพก่อนกดยืนยัน");
-      return;
-    }
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -281,20 +277,18 @@ const CheckInPage = () => {
       const user = userStr ? JSON.parse(userStr) : null;
       const userId = user?.id || user?.line_uid || 'usr_line_caly';
 
-      const formData = new FormData();
-      formData.append('image', activeImage);
-      formData.append('user_id', userId);
-      formData.append('source_type', 'line');
-
-      // Also append coordinates as metadata reference
-      formData.append('latitude', locationData.latitude.toString());
-      formData.append('longitude', locationData.longitude.toString());
-      formData.append('accuracy', locationData.accuracy.toString());
-      formData.append('timestamp', new Date().toISOString());
+      const payload = {
+        user_id: userId.toString(),
+        source_type: 'web',
+        latitude: parseFloat(locationData.latitude),
+        longitude: parseFloat(locationData.longitude)
+      };
 
       // Read auth token from localStorage if available
       const token = localStorage.getItem('access_token');
-      const headers = {};
+      const headers = {
+        'Content-Type': 'application/json'
+      };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -305,8 +299,8 @@ const CheckInPage = () => {
 
       const response = await fetch(requestUrl, {
         method: 'POST',
-        headers: headers, // Let fetch handle boundary Content-Type automatically for FormData!
-        body: formData
+        headers: headers,
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -580,15 +574,13 @@ const CheckInPage = () => {
         {/* Submit Confirm Trigger Button */}
         <button
           onClick={handleFormSubmit}
-          disabled={!imageFile || isSubmitting}
-          className={`w-full py-4 text-base font-bold text-white rounded-xl shadow-lg border-0 transition-all duration-300 relative overflow-hidden flex items-center justify-center gap-2 group active:scale-[0.98] ${
-            imageFile 
-              ? 'bg-gradient-to-r from-emerald-500 via-[#059669] to-emerald-600 shadow-emerald-500/20 hover:brightness-105 cursor-pointer' 
-              : 'bg-slate-300 text-slate-400 cursor-not-allowed shadow-none'
+          disabled={isSubmitting}
+          className={`w-full py-4 text-base font-bold text-white rounded-xl shadow-lg border-0 transition-all duration-300 relative overflow-hidden flex items-center justify-center gap-2 group active:scale-[0.98] bg-gradient-to-r from-emerald-500 via-[#059669] to-emerald-600 shadow-emerald-500/20 hover:brightness-105 cursor-pointer ${
+            isSubmitting ? 'opacity-70 pointer-events-none' : ''
           }`}
         >
           {/* Subtle button glare reflection effect */}
-          {imageFile && (
+          {!isSubmitting && (
             <div className="absolute inset-0 w-1/2 h-full bg-white/10 skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" style={{
               backgroundImage: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15) 50%, transparent)',
             }} />

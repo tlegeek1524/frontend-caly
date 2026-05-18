@@ -26,7 +26,9 @@ import {
   ExternalLink,
   Code,
   Info,
-  Power
+  Power,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { 
   Table, 
@@ -70,6 +72,16 @@ const AdminDashboard = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   
+  // Live Monitoring Dropdown State
+  const [isLiveMonitorOpen, setIsLiveMonitorOpen] = useState(true);
+  
+  // Roles Management State
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [isRolesLoading, setIsRolesLoading] = useState(false);
+  const [rolesSearchQuery, setRolesSearchQuery] = useState("");
+  const [tempRoles, setTempRoles] = useState({});
+  
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [banAction, setBanAction] = useState(""); 
   const [banFormData, setBanFormData] = useState({
@@ -108,6 +120,113 @@ const AdminDashboard = () => {
       setSnackbar({ open: true, message: "ไม่สามารถอัปเดตข้อมูลได้", severity: "error" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchUsersForRoles = async () => {
+    setIsRolesLoading(true);
+    try {
+      const response = await fetchWithAuth("/users/list-all-users");
+      if (!response) return;
+      const result = await response.json();
+      if (response.ok) {
+        const usersList = Array.isArray(result) ? result : (result.data || []);
+        setAllUsers(usersList);
+        
+        // Initialize tempRoles
+        const initialTempRoles = {};
+        usersList.forEach(usr => {
+          const hasDev = Array.isArray(usr.roles) 
+            ? usr.roles.includes('dev') 
+            : usr.roles === 'dev';
+          initialTempRoles[usr.accountno] = hasDev ? 'dev' : 'user';
+        });
+        setTempRoles(initialTempRoles);
+      } else {
+        setSnackbar({ open: true, message: result.message || "ไม่สามารถดึงรายชื่อผู้ใช้งานได้", severity: "error" });
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์เพื่อดึงข้อมูลผู้ใช้ได้", severity: "error" });
+    } finally {
+      setIsRolesLoading(false);
+    }
+  };
+
+  const openRolesDialog = () => {
+    setRolesDialogOpen(true);
+    fetchUsersForRoles();
+  };
+
+  const handleToggleTempRole = (accountno) => {
+    setTempRoles(prev => ({
+      ...prev,
+      [accountno]: prev[accountno] === 'dev' ? 'user' : 'dev'
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    setIsProcessing(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    // Filter users whose temporary role has changed from their original role
+    const changedUsers = allUsers.filter(usr => {
+      const originalHasDev = Array.isArray(usr.roles) 
+        ? usr.roles.includes('dev') 
+        : usr.roles === 'dev';
+      const originalRole = originalHasDev ? 'dev' : 'user';
+      const newRole = tempRoles[usr.accountno] || 'user';
+      return originalRole !== newRole;
+    });
+
+    if (changedUsers.length === 0) {
+      setSnackbar({ open: true, message: "ไม่มีการเปลี่ยนแปลงบทบาทผู้ใช้งาน", severity: "info" });
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      // Loop and update all changed users in parallel
+      const updatePromises = changedUsers.map(async (usr) => {
+        const newRole = tempRoles[usr.accountno];
+        try {
+          const response = await fetchWithAuth("/admin/update-role", {
+            method: "POST",
+            body: JSON.stringify({
+              accountno: usr.accountno,
+              roles: newRole
+            })
+          });
+          if (response && response.ok) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (e) {
+          failCount++;
+        }
+      });
+
+      await Promise.all(updatePromises);
+
+      if (failCount === 0) {
+        setSnackbar({ open: true, message: `บันทึกการเปลี่ยนบทบาทสำเร็จ (${successCount} รายการ)`, severity: "success" });
+      } else {
+        setSnackbar({ 
+          open: true, 
+          message: `บันทึกสำเร็จ ${successCount} รายการ, ล้มเหลว ${failCount} รายการ`, 
+          severity: failCount === changedUsers.length ? "error" : "warning" 
+        });
+      }
+
+      // Refresh data
+      await fetchUsersForRoles();
+      fetchAuditLogs();
+      setRolesDialogOpen(false);
+    } catch (err) {
+      setSnackbar({ open: true, message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล", severity: "error" });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -230,6 +349,15 @@ const AdminDashboard = () => {
     { label: "System Load", value: "32%", icon: Server, color: "text-emerald-600" },
     { label: "Total Logs", value: logs.length, icon: Terminal, color: "text-emerald-600" },
   ];
+
+  const filteredUsers = allUsers.filter(usr => {
+    const query = rolesSearchQuery.toLowerCase();
+    const fullName = (usr.full_name || "").toLowerCase();
+    const username = (usr.username || "").toLowerCase();
+    const email = (usr.email || "").toLowerCase();
+    const accountno = (usr.accountno || "").toLowerCase();
+    return fullName.includes(query) || username.includes(query) || email.includes(query) || accountno.includes(query);
+  });
 
   return (
     <div className="p-6 md:p-10 space-y-10 font-['Sarabun'] bg-[#f0f4f0] min-h-screen">
@@ -371,20 +499,27 @@ const AdminDashboard = () => {
             </div>
             
             <div className="grid grid-cols-1 gap-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2 md:gap-3">
                 <button 
                   onClick={() => { setBanAction("ban"); setBanDialogOpen(true); }}
-                  className="group flex flex-col items-center gap-3 p-5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-500 transition-all text-center"
+                  className="group flex flex-col items-center gap-3 p-4 md:p-5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-500 transition-all text-center"
                 >
                   <Lock className="w-5 h-5 text-slate-400 group-hover:text-amber-600" />
-                  <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Ban User</span>
+                  <span className="text-[9px] md:text-[10px] font-bold text-slate-900 uppercase tracking-widest">Ban User</span>
                 </button>
                 <button 
                   onClick={() => { setBanAction("unban"); setBanDialogOpen(true); }}
-                  className="group flex flex-col items-center gap-3 p-5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500 transition-all text-center"
+                  className="group flex flex-col items-center gap-3 p-4 md:p-5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-500 transition-all text-center"
                 >
                   <Unlock className="w-5 h-5 text-slate-400 group-hover:text-emerald-600" />
-                  <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Unban User</span>
+                  <span className="text-[9px] md:text-[10px] font-bold text-slate-900 uppercase tracking-widest">Unban User</span>
+                </button>
+                <button 
+                  onClick={openRolesDialog}
+                  className="group flex flex-col items-center gap-3 p-4 md:p-5 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-500 transition-all text-center"
+                >
+                  <Users className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
+                  <span className="text-[9px] md:text-[10px] font-bold text-slate-900 uppercase tracking-widest">User Roles</span>
                 </button>
               </div>
             </div>
@@ -453,37 +588,50 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-slate-900 p-8 text-white border-b-8 border-emerald-600 space-y-6">
-             <div className="flex items-center gap-2 text-emerald-400">
-                <Activity className="w-4 h-4" />
-                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">Live Monitoring</h4>
-             </div>
-             <div className="space-y-4">
-                {healthStatus.length === 0 ? (
-                  <div className="text-[11px] text-slate-500 uppercase tracking-widest italic">
-                    กำลังตรวจสอบสถานะระบบ...
-                  </div>
+          <div className="bg-slate-900 text-white border-b-8 border-emerald-600 overflow-hidden">
+             <button 
+               onClick={() => setIsLiveMonitorOpen(!isLiveMonitorOpen)}
+               className="w-full flex items-center justify-between p-8 text-left hover:bg-slate-800/50 transition-colors duration-200 outline-none focus:outline-none"
+             >
+                <div className="flex items-center gap-2 text-emerald-400">
+                   <Activity className="w-4 h-4" />
+                   <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">Live Monitoring</h4>
+                </div>
+                {isLiveMonitorOpen ? (
+                  <ChevronUp className="w-4 h-4 text-emerald-400" />
                 ) : (
-                  healthStatus.map((svc, i) => (
-                    <div key={i} className="flex justify-between items-center text-[11px] uppercase tracking-widest border-b border-slate-800 pb-2 last:border-0">
-                       <div className="flex flex-col">
-                         <span className="text-slate-500 text-[9px]">{svc.name}</span>
-                         <span className={`${svc.status === 200 ? 'text-emerald-400' : svc.status === 503 ? 'text-amber-500' : 'text-red-400'} font-bold flex items-center gap-2 mt-0.5`}>
-                           {svc.status === 200 && <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>}
-                           {svc.message}
-                         </span>
-                       </div>
-                       <button 
-                         onClick={() => handleToggleEndpoint(svc.path, svc.status)}
-                         className={`p-1.5 border transition-all ${svc.status === 503 ? 'border-amber-500 text-amber-500 hover:bg-amber-500 hover:text-white' : 'border-slate-700 text-slate-500 hover:border-red-500 hover:text-red-500'}`}
-                         title={svc.status === 503 ? "เปิดใช้งาน" : "ปิดใช้งาน (Maintenance)"}
-                       >
-                         <Power className="w-3 h-3" />
-                       </button>
-                    </div>
-                  ))
+                  <ChevronDown className="w-4 h-4 text-slate-500" />
                 )}
-             </div>
+             </button>
+             
+             {isLiveMonitorOpen && (
+               <div className="px-8 pb-8 space-y-4 animate-fadeIn">
+                  {healthStatus.length === 0 ? (
+                    <div className="text-[11px] text-slate-500 uppercase tracking-widest italic">
+                      กำลังตรวจสอบสถานะระบบ...
+                    </div>
+                  ) : (
+                    healthStatus.map((svc, i) => (
+                      <div key={i} className="flex justify-between items-center text-[11px] uppercase tracking-widest border-b border-slate-800 pb-2 last:border-0">
+                         <div className="flex flex-col">
+                           <span className="text-slate-500 text-[9px]">{svc.name}</span>
+                           <span className={`${svc.status === 200 ? 'text-emerald-400' : svc.status === 503 ? 'text-amber-500' : 'text-red-400'} font-bold flex items-center gap-2 mt-0.5`}>
+                             {svc.status === 200 && <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>}
+                             {svc.message}
+                           </span>
+                         </div>
+                         <button 
+                           onClick={() => handleToggleEndpoint(svc.path, svc.status)}
+                           className={`p-1.5 border transition-all ${svc.status === 503 ? 'border-amber-500 text-amber-500 hover:bg-amber-500 hover:text-white' : 'border-slate-700 text-slate-500 hover:border-red-500 hover:text-red-500'}`}
+                           title={svc.status === 503 ? "เปิดใช้งาน" : "ปิดใช้งาน (Maintenance)"}
+                         >
+                           <Power className="w-3 h-3" />
+                         </button>
+                      </div>
+                    ))
+                  )}
+               </div>
+             )}
           </div>
         </div>
       </div>
@@ -672,6 +820,132 @@ const AdminDashboard = () => {
         <DialogActions sx={{ p: 3, borderTop: '1px solid #f1f5f9', gap: 1 }}>
           <button onClick={() => setBanDialogOpen(false)} className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">ยกเลิก</button>
           <button onClick={() => runAdminAction(banAction === 'ban' ? "/admin/ban-user" : "/admin/unban-user", "POST", banAction === 'ban' ? "ระงับการใช้งานสำเร็จ" : "ยกเลิกการระงับสำเร็จ")} className={`px-8 py-3 text-[10px] font-bold text-white uppercase tracking-widest transition-all ${banAction === 'ban' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>{isProcessing ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'ยืนยันดำเนินการ'}</button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Roles Management Dialog */}
+      <Dialog 
+        open={rolesDialogOpen} 
+        onClose={() => setRolesDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 0, border: '4px solid #e2e8f0', boxShadow: 'none' } }}
+      >
+        <DialogTitle sx={{ p: 4, bgcolor: '#f8fafc', borderBottom: '2px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-blue-600 text-white flex items-center justify-center font-bold text-lg">R</div>
+             <div>
+                <h3 className="text-lg font-bold text-slate-900 uppercase tracking-widest leading-none">Manage User Roles</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">กำหนดสิทธิ์และบทบาทผู้ใช้งานในระบบ (DEV)</p>
+             </div>
+          </div>
+          <button 
+            onClick={() => setRolesDialogOpen(false)} 
+            className="text-slate-400 hover:text-slate-600 transition-colors bg-transparent border-none text-xl"
+          >
+            ✕
+          </button>
+        </DialogTitle>
+        <DialogContent sx={{ p: 4 }}>
+          {isRolesLoading ? (
+            <div className="py-12 text-center">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">กำลังดึงข้อมูลผู้ใช้ทั้งหมด...</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Search bar inside dialog */}
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="ค้นหาผู้ใช้ด้วยชื่อ, อีเมล หรือเลขบัญชี..." 
+                  className="pl-10 pr-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-none text-sm outline-none focus:border-blue-500 w-full"
+                  value={rolesSearchQuery}
+                  onChange={(e) => setRolesSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <TableContainer 
+                component={Paper} 
+                elevation={0} 
+                sx={{ borderRadius: 0, border: '2px solid #e2e8f0', boxShadow: 'none', bgcolor: 'white', maxHeight: '400px' }}
+              >
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', fontSize: '10px', color: '#94a3b8', borderBottom: '2px solid #f1f5f9', letterSpacing: '0.1em' }}>USER / EMAIL</TableCell>
+                      <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', fontSize: '10px', color: '#94a3b8', borderBottom: '2px solid #f1f5f9', letterSpacing: '0.1em' }}>ACCOUNT NO</TableCell>
+                      <TableCell sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', fontSize: '10px', color: '#94a3b8', borderBottom: '2px solid #f1f5f9', letterSpacing: '0.1em' }}>CURRENT ROLES</TableCell>
+                      <TableCell align="center" sx={{ bgcolor: '#f8fafc', fontWeight: 'bold', fontSize: '10px', color: '#94a3b8', borderBottom: '2px solid #f1f5f9', letterSpacing: '0.1em' }}>DEV PRIVILEGE</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
+                          <span className="text-sm font-medium text-slate-400">ไม่พบข้อมูลผู้ใช้งาน</span>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredUsers.map((usr) => {
+                        const isDev = tempRoles[usr.accountno] === 'dev';
+                        return (
+                          <TableRow key={usr.accountno || usr.email} hover sx={{ '&:hover': { bgcolor: '#f8fafc !important' } }}>
+                            <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <div>
+                                <p className="text-sm font-bold text-slate-800">{usr.full_name || usr.username || 'N/A'}</p>
+                                <p className="text-xs text-slate-400 font-mono mt-0.5">{usr.email || 'No email'}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <span className="text-xs font-mono font-bold text-slate-600">{usr.accountno || 'N/A'}</span>
+                            </TableCell>
+                            <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <div className="flex flex-wrap gap-1">
+                                {isDev ? (
+                                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-700">
+                                    dev
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-600">
+                                    user
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell align="center" sx={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <input 
+                                type="checkbox"
+                                checked={isDev}
+                                onChange={() => handleToggleTempRole(usr.accountno)}
+                                className="w-4 h-4 text-blue-600 border-2 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, borderTop: '2px solid #f1f5f9', bgcolor: '#f8fafc', gap: 2 }}>
+          <button 
+            onClick={() => setRolesDialogOpen(false)}
+            className="px-6 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors bg-transparent border-none outline-none"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleSaveChanges}
+            disabled={isProcessing}
+            className="px-8 py-3 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all disabled:opacity-75"
+          >
+            {isProcessing ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+          </button>
         </DialogActions>
       </Dialog>
 

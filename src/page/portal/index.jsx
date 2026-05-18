@@ -23,7 +23,7 @@ const Portal = () => {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    const apiCall = fetchWithAuth("http://localhost:3000/auth/logout", {
+    const apiCall = fetchWithAuth("/auth/logout", {
       method: "POST"
     });
 

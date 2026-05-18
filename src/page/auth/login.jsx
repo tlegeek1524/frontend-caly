@@ -119,11 +119,6 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">
-              ยังไม่มีบัญชี? <span onClick={() => navigate("/signup")} className="text-emerald-600 cursor-pointer hover:underline ml-1">สมัครสมาชิก</span>
-            </p>
-          </div>
         </div>
       </div>
 
