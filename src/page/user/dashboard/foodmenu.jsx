@@ -954,6 +954,33 @@ const FoodMenu = () => {
     setAiSuggestedPercent(0);
   };
 
+  // คำนวณสรุปโภชนาการ - ใช้ค่าจริงที่กินไป
+  // ถ้ามีรูปหลังกิน (Table2) ให้ใช้ค่าจาก Table2
+  // ถ้าไม่มีรูปหลังกิน ให้ใช้ค่าจาก Table1 (ก่อนกิน)
+  let totalCal = 0;
+  let totalProtein = 0;
+  let totalCarb = 0;
+  let totalFat = 0;
+
+  foodRecords.forEach(record => {
+    // หาข้อมูลหลังกินที่ตรงกับ runnum
+    const afterData = foodAfterRecords.find(after => after.mash === record.runnum);
+    
+    if (afterData) {
+      // ถ้ามีรูปหลังกิน ใช้ค่าจาก Table2
+      totalCal += afterData.cal || 0;
+      totalProtein += afterData.protein || 0;
+      totalCarb += afterData.carb || 0;
+      totalFat += afterData.fat || 0;
+    } else {
+      // ถ้าไม่มีรูปหลังกิน ใช้ค่าจาก Table1
+      totalCal += record.cal || 0;
+      totalProtein += record.protein || 0;
+      totalCarb += record.carb || 0;
+      totalFat += record.fat || 0;
+    }
+  });
+
   return (
     <div 
       ref={containerRef}
@@ -1055,7 +1082,7 @@ const FoodMenu = () => {
                   {afterData && (
                     <div className="mb-3 pt-3 border-t border-[#e5e5ea]">
                       <div className="text-[13px] font-semibold text-blue-600 mb-2">
-                        ✅ หลังกิน (กินไป {afterData.eatPercent}%)
+                         หลังกิน (กินไป {afterData.eatPercent}%)
                       </div>
                       <div className="flex gap-3 items-start">
                         <img 
@@ -1139,25 +1166,25 @@ const FoodMenu = () => {
           <div className="grid grid-cols-4 gap-2">
             <div className="text-center">
               <div className="text-[18px] font-bold text-green-500">
-                {foodRecords.reduce((sum, item) => sum + item.cal, 0)}
+                {totalCal}
               </div>
               <div className="text-[11px] text-[#8e8e93]">แคลอรี่</div>
             </div>
             <div className="text-center">
               <div className="text-[18px] font-bold text-blue-500">
-                {foodRecords.reduce((sum, item) => sum + item.protein, 0)}g
+                {totalProtein}g
               </div>
               <div className="text-[11px] text-[#8e8e93]">โปรตีน</div>
             </div>
             <div className="text-center">
               <div className="text-[18px] font-bold text-orange-500">
-                {foodRecords.reduce((sum, item) => sum + item.carb, 0)}g
+                {totalCarb}g
               </div>
               <div className="text-[11px] text-[#8e8e93]">คาร์บ</div>
             </div>
             <div className="text-center">
               <div className="text-[18px] font-bold text-red-500">
-                {foodRecords.reduce((sum, item) => sum + item.fat, 0)}g
+                {totalFat}g
               </div>
               <div className="text-[11px] text-[#8e8e93]">ไขมัน</div>
             </div>
