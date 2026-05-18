@@ -1,138 +1,275 @@
-import React, { useState } from "react";
+import React from "react";
+import {
+  Box,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  TextField,
+  Typography,
+  Link,
+  Paper,
+  Grid, // Import standard Grid
+} from "@mui/material";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import { User, Lock, Loader2, Eye, EyeOff } from "lucide-react";
-import { Snackbar, Alert } from "@mui/material";
-import { fetchWithAuth } from "../../utils/api";
+
+// Custom Google Icon
+const GoogleIcon = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 18 18"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+      fill="#4285F4"
+    />
+    <path
+      d="M9 18c2.43 0 4.467-.806 5.956-2.18L12.048 13.56c-.806.54-1.836.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z"
+      fill="#34A853"
+    />
+    <path
+      d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.159 6.656 3.58 9 3.58z"
+      fill="#EA4335"
+    />
+  </svg>
+);
+
+// Healthcare SVG Illustration
+const HealthcareSVG = () => (
+  <svg
+    width="100%"
+    viewBox="0 0 500 500"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="250" cy="250" r="200" fill="#E3F2FD" />
+    <path
+      d="M350 250H150"
+      stroke="#3b82f6"
+      strokeWidth="20"
+      strokeLinecap="round"
+    />
+    <path
+      d="M250 150V350"
+      stroke="#3b82f6"
+      strokeWidth="20"
+      strokeLinecap="round"
+    />
+    <circle
+      cx="250"
+      cy="250"
+      r="180"
+      stroke="#3b82f6"
+      strokeWidth="2"
+      strokeDasharray="10 10"
+    />
+    <rect x="230" y="230" width="40" height="40" fill="white" />
+    <path
+      d="M240 250H260M250 240V260"
+      stroke="#EF4444"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
+    <path
+      d="M180 180C200 160 300 160 320 180"
+      stroke="#90CAF9"
+      strokeWidth="10"
+      strokeLinecap="round"
+      opacity="0.5"
+    />
+    <path
+      d="M180 320C200 340 300 340 320 320"
+      stroke="#90CAF9"
+      strokeWidth="10"
+      strokeLinecap="round"
+      opacity="0.5"
+    />
+  </svg>
+);
+
+const theme = createTheme({
+  typography: {
+    fontFamily: '"Sarabun", sans-serif',
+  },
+  palette: {
+    primary: {
+      main: "#3b82f6",
+    },
+  },
+});
 
 const Login = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "error" });
 
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const response = await fetchWithAuth("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response) return;
-
-      const result = await response.json();
-
-      if (response.ok && (result.status === 200 || result.status === "200")) {
-        localStorage.setItem("access_token", result.data.access_token);
-        localStorage.setItem("user", JSON.stringify(result.data.user));
-        setSnackbar({ open: true, message: "เข้าสู่ระบบสำเร็จ", severity: "success" });
-        setTimeout(() => navigate("/portal"), 1000);
-      } else {
-        setSnackbar({ open: true, message: result.message || "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", severity: "error" });
-      }
-    } catch (err) {
-      setSnackbar({ open: true, message: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้", severity: "error" });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    navigate("/main");
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#f0f4f0] p-6 font-['Sarabun']">
-      <div className="w-full max-w-[360px] animate-fadeIn">
-        
-        {/* Simple Branding */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-emerald-600 flex items-center justify-center text-white font-bold text-2xl mb-4">
-            C
-          </div>
-          <h1 className="text-xl font-bold text-slate-800 tracking-tight">เข้าสู่ระบบ</h1>
-          <p className="text-slate-500 text-xs mt-1">กรุณากรอกข้อมูลเพื่อเข้าใช้งานระบบ</p>
-        </div>
-
-        <div className="bg-white border-2 border-slate-200 p-8 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-0.5">
-                ชื่อผู้ใช้งาน
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-300">
-                  <User className="h-4 w-4" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-emerald-500 transition-all outline-none text-sm rounded-none"
-                  placeholder="Username"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-0.5">
-                รหัสผ่าน
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-300">
-                  <Lock className="h-4 w-4" />
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-12 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-emerald-500 transition-all outline-none text-sm rounded-none"
-                  placeholder="Password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-300 hover:text-emerald-600 transition-colors focus:outline-none appearance-none bg-transparent border-none outline-none shadow-none"
+    <ThemeProvider theme={theme}>
+      <Box sx={{ minHeight: "100vh", display: "flex", width: "100%" }}>
+        <Grid container sx={{ flexGrow: 1, width: "100%" }}>
+          {/* Left Side: 50% */}
+          <Grid
+            size={{ xs: 12, md: 6 }}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              p: 4,
+              bgcolor: "#ffffff",
+            }}
+          >
+            <Box sx={{ maxWidth: 400, width: "100%" }}>
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Please enter your details
+                </Typography>
+                <Typography
+                  variant="h3"
+                  fontWeight="bold"
+                  color="#111827"
+                  gutterBottom
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
+                  Welcome back
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Healthcare Management System
+                </Typography>
+              </Box>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all disabled:opacity-70 mt-4 rounded-none uppercase tracking-widest"
-            >
-              {isLoading ? (
-                <Loader2 className="animate-spin h-4 w-4" />
-              ) : (
-                "เข้าสู่ระบบ"
-              )}
-            </button>
-          </form>
+              <Box component="form" onSubmit={handleSubmit} noValidate>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Email address
+                </Typography>
+                <TextField
+                  fullWidth
+                  required
+                  id="email"
+                  placeholder="name@company.com"
+                  variant="outlined"
+                  size="small"
+                  sx={{ mb: 2 }}
+                />
 
-        </div>
-      </div>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Password
+                </Typography>
+                <TextField
+                  fullWidth
+                  required
+                  type="password"
+                  id="password"
+                  placeholder="••••••••"
+                  variant="outlined"
+                  size="small"
+                  sx={{ mb: 2 }}
+                />
 
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={4000} 
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 0, fontWeight: 'bold' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </div>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 3,
+                  }}
+                >
+                  <FormControlLabel
+                    control={<Checkbox size="small" />}
+                    label={
+                      <Typography variant="body2">
+                        Remember for 30 days
+                      </Typography>
+                    }
+                  />
+                  <Link href="#" variant="body2" underline="hover">
+                    Forgot password
+                  </Link>
+                </Box>
+
+                <Button
+                  fullWidth
+                  type="submit"
+                  variant="contained"
+                  sx={{
+                    py: 1.5,
+                    mb: 2,
+                    textTransform: "none",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Sign in
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<GoogleIcon />}
+                  sx={{
+                    py: 1.5,
+                    mb: 4,
+                    textTransform: "none",
+                    color: "#374151",
+                    borderColor: "#e5e7eb",
+                  }}
+                >
+                  Sign in with Google
+                </Button>
+
+                <Typography
+                  variant="body2"
+                  textAlign="center"
+                  color="text.secondary"
+                >
+                  Don't have an account?{" "}
+                  <Link href="#" fontWeight="bold" underline="hover">
+                    Sign up
+                  </Link>
+                </Typography>
+              </Box>
+            </Box>
+          </Grid>
+
+          {/* Right Side: 50% with SVG */}
+          <Grid
+            size={{ xs: 0, md: 6 }}
+            sx={{
+              display: { xs: "none", md: "flex" },
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              bgcolor: "#f8fafc",
+              borderLeft: "1px solid #e2e8f0",
+              p: 6,
+            }}
+          >
+            <Box sx={{ maxWidth: 500, width: "100%", textAlign: "center" }}>
+              <HealthcareSVG />
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+                color="#1e293b"
+                sx={{ mt: 4, mb: 2 }}
+              >
+                Digital Health Solutions
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Empowering healthcare providers with modern technology to
+                deliver better patient care.
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
+    </ThemeProvider>
   );
 };
 

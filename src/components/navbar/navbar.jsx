@@ -9,14 +9,13 @@ import {
   Stack,
 } from "@mui/material";
 import { Menu as MenuIcon, Logout as LogoutIcon } from "@mui/icons-material";
-import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const Navbar = ({ onMenuToggle, user }) => {
+const Navbar = ({ onMenuToggle }) => {
   const navigate = useNavigate();
 
-  const handlePortalExit = () => {
-    navigate("/portal");
+  const handleLogout = () => {
+    navigate("/login");
   };
 
   return (
@@ -48,27 +47,26 @@ const Navbar = ({ onMenuToggle, user }) => {
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography
             variant="body1"
-            sx={{ fontWeight: 600, color: "#1e293b", fontSize: "0.95rem" }}
+            sx={{ fontWeight: 500, color: "#374151" }}
           >
-            {user?.full_name || 'Guest'}
+            User : Admin
           </Typography>
           <Button
             variant="outlined"
             size="small"
             startIcon={<LogoutIcon />}
-            onClick={handlePortalExit}
+            onClick={handleLogout}
             sx={{
               textTransform: "none",
               borderColor: "#e5e7eb",
-              color: "#1e293b", 
-              fontWeight: "bold",
+              color: "#ef4444", // Red color for logout usually indicates a destructive/exit action
               "&:hover": {
-                borderColor: "#3b82f6",
-                bgcolor: "rgba(59, 130, 246, 0.04)",
+                borderColor: "#ef4444",
+                bgcolor: "rgba(239, 68, 68, 0.04)",
               },
             }}
           >
-            Portal
+            Logout
           </Button>
         </Stack>
       </Toolbar>
