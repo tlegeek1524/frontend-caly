@@ -80,12 +80,64 @@ const fetchFoodRecords = async (lineUid, selectedDate) => {
         carb: record.fields.carb || 0,
         fat: record.fields.fat || 0,
         image: record.fields.image?.[0]?.url || null,
+        runnum: record.fields.runnum || null
       }))
       .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return records;
   } catch (error) {
     console.error("Error fetching food records:", error);
+    return [];
+  }
+};
+
+// ดึงข้อมูลอาหารหลังกินจาก Table2
+const fetchFoodAfterRecords = async (lineUid) => {
+  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
+  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
+  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD_AFTER;
+  
+  try {
+    let allRecords = [];
+    let offset = null;
+    
+    do {
+      const url = offset 
+        ? `https://api.airtable.com/v0/${baseId}/${tableId}?offset=${offset}`
+        : `https://api.airtable.com/v0/${baseId}/${tableId}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      
+      if (data.records) {
+        allRecords = allRecords.concat(data.records);
+      }
+      
+      offset = data.offset;
+    } while (offset);
+    
+    if (!allRecords.length) return [];
+    
+    // กรองเฉพาะ line_uid เท่านั้น
+    const records = allRecords
+      .filter(record => record.fields.line_uid === lineUid)
+      .map(record => ({
+        id: record.id,
+        mash: record.fields.mash || null,
+        cal: record.fields.cal || 0,
+        protein: record.fields.protine || 0,
+        carb: record.fields.carb || 0,
+        fat: record.fields.fat || 0
+      }));
+    
+    return records;
+  } catch (error) {
+    console.error('❌ Error fetching food after records:', error);
     return [];
   }
 };
@@ -333,6 +385,7 @@ const MainDashboard = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [userTDEE, setUserTDEE] = useState(null);
   const [foodRecords, setFoodRecords] = useState([]);
+  const [foodAfterRecords, setFoodAfterRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [showNoDataModal, setShowNoDataModal] = useState(false);
@@ -421,8 +474,12 @@ const MainDashboard = () => {
         setUserTDEE(tdee);
 
         // ดึงรายการอาหาร
-        const records = await fetchFoodRecords(user.id, displayDate);
+        const [records, afterRecords] = await Promise.all([
+          fetchFoodRecords(user.id, displayDate),
+          fetchFoodAfterRecords(user.id)
+        ]);
         setFoodRecords(records);
+        setFoodAfterRecords(afterRecords);
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -460,13 +517,34 @@ const MainDashboard = () => {
     tdee: userTDEE || 0,
   };
 
-  // คำนวณสรุปโภชนาการ
-  const totalCal = foodRecords.reduce((sum, item) => sum + item.cal, 0);
-  const totalProtein = foodRecords.reduce((sum, item) => sum + item.protein, 0);
-  const totalCarb = foodRecords.reduce((sum, item) => sum + item.carb, 0);
-  const totalFat = foodRecords.reduce((sum, item) => sum + item.fat, 0);
+  // คำนวณสรุปโภชนาการ - ใช้ค่าจริงที่กินไป
+  // ถ้ามีรูปหลังกิน (Table2) ให้ใช้ค่าจาก Table2
+  // ถ้าไม่มีรูปหลังกิน ให้ใช้ค่าจาก Table1 (ก่อนกิน)
+  let totalCal = 0;
+  let totalProtein = 0;
+  let totalCarb = 0;
+  let totalFat = 0;
 
-  // คำนวณแคลอรี่จากโภชนาการ (มาตรฐาน: โปรตีน 4 kcal/g, คาร์บ 4 kcal/g, ไขมัน 9 kcal/g)
+  foodRecords.forEach(record => {
+    // หาข้อมูลหลังกินที่ตรงกับ runnum
+    const afterData = foodAfterRecords.find(after => after.mash === record.runnum);
+    
+    if (afterData) {
+      // ถ้ามีรูปหลังกิน ใช้ค่าจาก Table2
+      totalCal += afterData.cal || 0;
+      totalProtein += afterData.protein || 0;
+      totalCarb += afterData.carb || 0;
+      totalFat += afterData.fat || 0;
+    } else {
+      // ถ้าไม่มีรูปหลังกิน ใช้ค่าจาก Table1
+      totalCal += record.cal || 0;
+      totalProtein += record.protein || 0;
+      totalCarb += record.carb || 0;
+      totalFat += record.fat || 0;
+    }
+  });
+
+  // คำนวณแคลอรี่จากโภชนาการ (สำหรับแสดงในกราฟ)
   const proteinCal = totalProtein * 4;
   const carbCal = totalCarb * 4;
   const fatCal = totalFat * 9;
@@ -839,12 +917,8 @@ const MainDashboard = () => {
               <Doughnut data={chartData} options={chartOptions} />
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="text-[24px] font-bold text-black">
-                {Math.round(totalNutritionCal)}
-              </div>
-              <div className="text-[11px] text-[#8e8e93]">
-                / {userTDEE || "-"} kcal
-              </div>
+              <div className="text-[24px] font-bold text-black">{Math.round(totalCal)}</div>
+              <div className="text-[11px] text-[#8e8e93]">/ {userTDEE || '-'} kcal</div>
             </div>
           </div>
 
