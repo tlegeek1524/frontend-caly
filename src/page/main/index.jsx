@@ -1,219 +1,393 @@
-import React from "react";
-import { useOutletContext } from "react-router-dom";
-import { 
-  Users, 
-  Calendar, 
-  Clock, 
-  CheckCircle2, 
-  Search, 
-  Plus, 
-  ArrowUpRight,
-  MoreHorizontal,
-  Bell,
-  Filter,
-  ChevronRight
+import React, { useState } from "react";
+import {
+  Box,
+  Typography,
+  Container,
+  Paper,
+  Card,
+  CardContent,
+  Button,
+  List,
+  ListItem,
+  Checkbox,
+  Chip,
+  Avatar,
+  Divider,
+  Grid,
+} from "@mui/material";
+import {
+  Users,
+  Clock,
+  CheckSquare,
+  MoreVertical,
+  ArrowRight,
+  Calendar,
 } from "lucide-react";
 
 const MainPage = () => {
-  const { user } = useOutletContext();
+  // Mock data for tasks/requests
+  const [tasks, setTasks] = useState([
+    {
+      id: 1,
+      requester: "Somchai Jaidee",
+      title: "Request for Annual Leave",
+      date: "2023-10-25",
+      time: "09:30 AM",
+      status: "กำลังดำเนินการ",
+      avatar: "S",
+    },
+    {
+      id: 2,
+      requester: "Suda Rakthai",
+      title: "Equipment Requisition: Laptop",
+      date: "2023-10-24",
+      time: "02:15 PM",
+      status: "สำเร็จ",
+      avatar: "S",
+    },
+    {
+      id: 3,
+      requester: "John Doe",
+      title: "System Access Request",
+      date: "2023-10-24",
+      time: "11:45 AM",
+      status: "ยกเลิก",
+      avatar: "J",
+    },
+    {
+      id: 4,
+      requester: "Jane Smith",
+      title: "Budget Approval for Q4",
+      date: "2023-10-23",
+      time: "04:50 PM",
+      status: "กำลังดำเนินการ",
+      avatar: "J",
+    },
+    {
+      id: 5,
+      requester: "Mana Jaihan",
+      title: "Update Project Timeline",
+      date: "2023-10-22",
+      time: "10:00 AM",
+      status: "สำเร็จ",
+      avatar: "M",
+    },
+  ]);
 
-  const stats = [
-    { label: "Total Patients", value: "1,284", icon: Users, color: "bg-blue-600", trend: "+12.5%" },
-    { label: "Today's Visits", value: "42", icon: Calendar, color: "bg-indigo-600", trend: "+4 new" },
-    { label: "Pending Tests", value: "12", icon: Clock, color: "bg-amber-500", trend: "-2 from yesterday" },
-    { label: "Staff on Duty", value: "18", icon: CheckCircle2, color: "bg-emerald-600", trend: "Active" },
-  ];
+  const [checked, setChecked] = useState([]);
 
-  const recentRequests = [
-    { id: 1, patient: "Somchai Jaidee", service: "Annual Checkup", status: "In Progress", time: "09:30 AM", type: "Regular" },
-    { id: 2, patient: "Suda Rakthai", service: "Vaccination", status: "Completed", time: "10:15 AM", type: "Urgent" },
-    { id: 3, patient: "John Doe", service: "Follow-up", status: "Waiting", time: "11:45 AM", type: "Regular" },
-    { id: 4, patient: "Jane Smith", service: "Lab Results", status: "In Progress", time: "02:30 PM", type: "Regular" },
-  ];
+  const handleToggle = (value) => () => {
+    const currentIndex = checked.indexOf(value);
+    const newChecked = [...checked];
 
-  const getStatusStyles = (status) => {
+    if (currentIndex === -1) {
+      newChecked.push(value);
+    } else {
+      newChecked.splice(currentIndex, 1);
+    }
+
+    setChecked(newChecked);
+  };
+
+  const getStatusColor = (status) => {
     switch (status) {
-      case "Completed": return "bg-emerald-50 text-emerald-600 border-emerald-100";
-      case "In Progress": return "bg-blue-50 text-blue-600 border-blue-100";
-      case "Waiting": return "bg-amber-50 text-amber-600 border-amber-100";
-      default: return "bg-gray-50 text-gray-600 border-gray-100";
+      case "ยกเลิก":
+        return "error"; // Red
+      case "กำลังดำเนินการ":
+        return "warning"; // Orange
+      case "สำเร็จ":
+        return "success"; // Green
+      default:
+        return "default";
     }
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-8 animate-fadeIn">
-      {/* Top Navigation & Branding Area */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2">
-        <div className="space-y-1">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
-            Hello, {user?.full_name?.split(' ')[0] || 'Administrator'}
-          </h1>
-          <div className="flex items-center gap-2 text-gray-500 font-medium">
-            <Calendar className="w-4 h-4" />
-            <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
-          </div>
-        </div>
+    <Container maxWidth="lg">
+      <Grid container spacing={3}>
+        {/* Welcome Banner */}
+        <Grid size={{ xs: 12 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              display: "flex",
+              flexDirection: "column",
+              bgcolor: "primary.main",
+              color: "white",
+              borderRadius: 3,
+              backgroundImage:
+                "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+              boxShadow: "0 4px 20px rgba(37, 99, 235, 0.2)",
+            }}
+          >
+            <Typography
+              variant="h4"
+              component="h1"
+              gutterBottom
+              fontWeight="bold"
+              sx={{ display: "flex", alignItems: "center", gap: 2 }}
+            >
+              Welcome back, Admin!{" "}
+              <span style={{ fontSize: "0.6em", opacity: 0.8 }}>👋</span>
+            </Typography>
+            <Typography variant="body1" sx={{ opacity: 0.9 }}>
+              You have {tasks.length} pending requests to review today.
+            </Typography>
+          </Paper>
+        </Grid>
 
-        <div className="flex items-center gap-3">
-          <div className="relative group flex-1 md:flex-none">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Search patients, reports..." 
-              className="w-full md:w-72 pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600 outline-none transition-all shadow-sm"
-            />
-          </div>
-          <button className="relative p-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors shadow-sm group">
-            <Bell className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-          </button>
-          <button className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-black text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-gray-200 transition-all active:scale-[0.98]">
-            <Plus className="w-5 h-5" />
-            <span>New Case</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="group bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div className="flex items-start justify-between mb-5">
-              <div className={`${stat.color} p-4 rounded-2xl shadow-lg shadow-blue-100`}>
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
-              <div className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
-                stat.trend.includes('+') || stat.trend === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-              }`}>
-                {stat.trend}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-gray-500 uppercase tracking-wider">{stat.label}</p>
-              <h3 className="text-3xl font-black text-gray-900">{stat.value}</h3>
-            </div>
-          </div>
+        {/* Dashboard Stats */}
+        {[
+          {
+            label: "Total Requests",
+            value: "24",
+            icon: <Users size={24} />,
+            color: "#e0f2fe",
+            textColor: "#0369a1",
+          },
+          {
+            label: "Pending Approval",
+            value: "12",
+            icon: <Clock size={24} />,
+            color: "#fef9c3",
+            textColor: "#a16207",
+          },
+          {
+            label: "Task Completed",
+            value: "85%",
+            icon: <CheckSquare size={24} />,
+            color: "#dcfce7",
+            textColor: "#15803d",
+          },
+        ].map((stat, index) => (
+          <Grid size={{ xs: 12, md: 4 }} key={index}>
+            <Card
+              elevation={0}
+              sx={{
+                height: "100%",
+                borderRadius: 3,
+                border: "1px solid #e2e8f0",
+                transition: "transform 0.2s",
+                "&:hover": {
+                  transform: "translateY(-4px)",
+                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                },
+              }}
+            >
+              <CardContent>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 2,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: stat.color,
+                      color: stat.textColor,
+                    }}
+                  >
+                    {stat.icon}
+                  </Box>
+                  <Button
+                    size="small"
+                    sx={{ color: "text.secondary", minWidth: "auto" }}
+                  >
+                    <MoreVertical size={18} />
+                  </Button>
+                </Box>
+                <Typography
+                  variant="h4"
+                  fontWeight="bold"
+                  sx={{ color: "#1e293b", mb: 1 }}
+                >
+                  {stat.value}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {stat.label}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </div>
 
-      {/* Main Grid: Data & Side Panels */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-        {/* Left Column: Recent Activity Table */}
-        <div className="xl:col-span-8 space-y-6">
-          <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-              <div>
-                <h3 className="font-black text-gray-900 text-xl tracking-tight">Active Appointments</h3>
-                <p className="text-sm text-gray-500 font-medium mt-1">Manage your patients and their current status</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="p-2.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-gray-600">
-                  <Filter className="w-5 h-5" />
-                </button>
-                <button className="px-4 py-2 text-blue-600 font-bold hover:bg-blue-50 rounded-xl transition-colors">
-                  View All
-                </button>
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Patient Details</th>
-                    <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Service</th>
-                    <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Time</th>
-                    <th className="px-8 py-5"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {recentRequests.map((req) => (
-                    <tr key={req.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center font-black text-blue-600 text-lg">
-                            {req.patient[0]}
-                          </div>
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-gray-900">{req.patient}</p>
-                            <p className="text-xs text-gray-500 font-medium">ID: CASE-{(2000 + req.id)}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 font-semibold text-gray-700">{req.service}</td>
-                      <td className="px-8 py-6">
-                        <span className={`text-[11px] font-black px-3 py-1.5 rounded-xl border uppercase tracking-wider ${getStatusStyles(req.status)}`}>
-                          {req.status}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 font-bold text-gray-900">{req.time}</td>
-                      <td className="px-8 py-6 text-right">
-                        <button className="p-2 text-gray-300 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-6 bg-gray-50/30 border-t border-gray-50 text-center">
-              <button className="text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors flex items-center justify-center gap-2 mx-auto">
-                Showing 4 of 24 appointments <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Recent Request List */}
+        <Grid size={{ xs: 12 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              border: "1px solid #e2e8f0",
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                p: 3,
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Typography
+                variant="h6"
+                fontWeight="bold"
+                sx={{ color: "#1e293b" }}
+              >
+                Recent Requests
+              </Typography>
+              <Button
+                endIcon={<ArrowRight size={16} />}
+                sx={{ textTransform: "none" }}
+              >
+                View All
+              </Button>
+            </Box>
 
-        {/* Right Column: Quick Actions & Pro Banner */}
-        <div className="xl:col-span-4 space-y-8">
-          <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-            <h3 className="font-black text-gray-900 text-xl mb-6 tracking-tight">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Register Patient', icon: UserPlus, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'Set Schedule', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                { label: 'Upload Data', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-                { label: 'Health Check', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' }
-              ].map((action, i) => (
-                <button key={i} className={`flex flex-col items-center justify-center p-6 rounded-3xl border border-transparent ${action.bg} hover:border-gray-200 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group`}>
-                  <div className={`${action.color} mb-3 group-hover:scale-110 transition-transform`}>
-                    {/* Render icon conditionally or via mapping if needed, using placeholders for now */}
-                    <div className="w-8 h-8 flex items-center justify-center">
-                      {i === 0 && <Users className="w-8 h-8" />}
-                      {i === 1 && <Calendar className="w-8 h-8" />}
-                      {i === 2 && <Clock className="w-8 h-8" />}
-                      {i === 3 && <CheckCircle2 className="w-8 h-8" />}
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-gray-700 text-center uppercase tracking-wider">{action.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+            <List sx={{ width: "100%", bgcolor: "background.paper", p: 0 }}>
+              {tasks.map((task, index) => {
+                const labelId = `checkbox-list-label-${task.id}`;
 
-          <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-8 rounded-[32px] shadow-2xl shadow-blue-200 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-            <div className="relative z-10 space-y-4">
-              <div className="bg-white/20 w-fit p-3 rounded-2xl backdrop-blur-md">
-                <ShieldCheck className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="font-black text-2xl text-white leading-tight">Upgrade to Caly Pro</h3>
-              <p className="text-blue-100 text-sm font-medium leading-relaxed">Unlock advanced diagnostic tools, unlimited history, and priority AI analysis.</p>
-              <button className="w-full py-4 bg-white text-blue-700 font-black rounded-2xl text-sm shadow-xl hover:bg-blue-50 transition-all active:scale-[0.98]">
-                Upgrade Account
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                return (
+                  <React.Fragment key={task.id}>
+                    <ListItem
+                      sx={{
+                        py: 2,
+                        "&:hover": { bgcolor: "#f8fafc" },
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 2,
+                      }}
+                    >
+                      {/* Left: Avatar & Text */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          flex: 1,
+                          minWidth: "200px",
+                        }}
+                      >
+                        <Avatar
+                          sx={{
+                            bgcolor: "primary.main",
+                            width: 40,
+                            height: 40,
+                            fontSize: 16,
+                          }}
+                        >
+                          {task.avatar}
+                        </Avatar>
+
+                        <Box>
+                          <Typography
+                            id={labelId}
+                            variant="subtitle1"
+                            fontWeight="600"
+                            color="#1e293b"
+                          >
+                            {task.requester}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {task.title}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Right: Date/Time, Status, Checkbox */}
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 3 }}
+                      >
+                        {/* Date & Time */}
+                        <Box
+                          sx={{
+                            display: { xs: "none", md: "flex" },
+                            flexDirection: "column",
+                            alignItems: "end",
+                            minWidth: 100,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              mb: 0.5,
+                              color: "#64748b",
+                            }}
+                          >
+                            <Calendar size={14} />
+                            <Typography variant="caption" fontWeight="500">
+                              {task.date}
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              color: "#64748b",
+                            }}
+                          >
+                            <Clock size={14} />
+                            <Typography variant="caption" fontWeight="500">
+                              {task.time}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {/* Status Chip */}
+                        <Chip
+                          label={task.status}
+                          color={getStatusColor(task.status)}
+                          size="small"
+                          sx={{
+                            borderRadius: "6px",
+                            fontWeight: 600,
+                            height: 24,
+                            width: 110, // Fixed width for uniformity
+                          }}
+                        />
+
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            borderRadius: "6px",
+                            minWidth: "auto",
+                            px: 2,
+                            borderColor: "#e2e8f0",
+                            color: "#475569",
+                            textTransform: "none",
+                            "&:hover": {
+                              borderColor: "primary.main",
+                              color: "primary.main",
+                              bgcolor: "#eff6ff",
+                            },
+                          }}
+                        >
+                          Read
+                        </Button>
+                      </Box>
+                    </ListItem>
+                    {index < tasks.length - 1 && <Divider component="li" />}
+                  </React.Fragment>
+                );
+              })}
+            </List>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
-
-// Internal icon proxy for easy mapping
-const UserPlus = Users;
-const ShieldCheck = CheckCircle2;
 
 export default MainPage;

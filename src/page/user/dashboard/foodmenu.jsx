@@ -834,35 +834,6 @@ const FoodMenu = () => {
     setLoading(true);
     
     try {
-      // ส่งพิกัด GPS ไปที่ backend แบบเบื้องหลัง (ถ้าดึงได้)
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 0
-            });
-          });
-          
-          const payload = {
-            user_id: user.id.toString(),
-            source_type: 'web',
-            latitude: parseFloat(position.coords.latitude),
-            longitude: parseFloat(position.coords.longitude)
-          };
-          
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
-          fetch(`${apiUrl.replace(/\/$/, '')}/api/upload-location`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          }).catch(e => console.error("Location upload failed", e));
-        } catch (gpsError) {
-          console.warn("ไม่สามารถดึงพิกัด GPS ได้:", gpsError);
-        }
-      }
-
       // บันทึกข้อมูลพร้อมรูปภาพลง Airtable
       const result = await addFoodRecord(user.id, pendingFoodData, pendingImageFile);
       
