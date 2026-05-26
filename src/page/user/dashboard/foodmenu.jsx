@@ -988,29 +988,29 @@ const FoodMenu = () => {
       style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
     >
       {/* Navbar */}
-      <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-6 shadow-sm">
+      <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-3 sm:px-4 py-4 sm:py-6 shadow-sm">
         <div className="max-w-md mx-auto">
-          <h1 className="text-[28px] font-bold text-white tracking-tight">
+          <h1 className="text-[24px] sm:text-[28px] font-bold text-white tracking-tight">
             Calories Daily
           </h1>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-md mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-3 sm:space-y-4">
         {/* Date Filter */}
-        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard">
-          <label className="block text-[13px] text-black mb-2">เลือกวันที่</label>
+        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard">
+          <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">เลือกวันที่</label>
           <div className="flex gap-2">
             <input 
               type="date" 
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-3 py-2 text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
+              className="flex-1 px-2.5 sm:px-3 py-2 text-[14px] sm:text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
             />
             <button 
               onClick={handleViewDate}
               disabled={loading}
-              className="px-4 py-2 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 sm:px-4 py-2 text-[14px] sm:text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'กำลังโหลด...' : 'ดู'}
             </button>
@@ -1019,14 +1019,14 @@ const FoodMenu = () => {
 
         {/* Food List */}
         <div className="animate-slideUpCard animate-delay-100">
-          <h5 className="text-[17px] font-semibold text-black mb-3 px-1">
+          <h5 className="text-[15px] sm:text-[17px] font-semibold text-black mb-2.5 sm:mb-3 px-1">
             รายการอาหารวันที่ {new Date(displayDate).toLocaleDateString('th-TH', { 
               year: 'numeric', 
               month: 'long', 
               day: 'numeric' 
             })}
           </h5>
-          <div className="space-y-3">
+          <div className="space-y-2.5 sm:space-y-3">
             {foodRecords.map((item, index) => {
               // หาข้อมูลหลังกินที่ตรงกับ runnum (Table1) = mash (Table2)
               const afterData = foodAfterRecords.find(after => {
@@ -1036,42 +1036,42 @@ const FoodMenu = () => {
               return (
                 <div 
                   key={item.id} 
-                  className="bg-white rounded-[12px] overflow-hidden shadow-sm animate-slideUpCard" 
+                  className="bg-white rounded-[10px] sm:rounded-[12px] overflow-hidden shadow-sm animate-slideUpCard" 
                   style={{ animationDelay: `${0.2 + index * 0.1}s` }}
                 >
-                  <div className="bg-[#f2f2f7] px-4 py-2 flex justify-between items-center border-b border-[#e5e5ea]">
-                    <span className="text-[15px] font-semibold text-black">{item.menu}</span>
-                    <span className="text-[13px] text-[#8e8e93]">
+                  <div className="bg-[#f2f2f7] px-3 sm:px-4 py-2 flex justify-between items-center border-b border-[#e5e5ea]">
+                    <span className="text-[14px] sm:text-[15px] font-semibold text-black truncate flex-1 mr-2">{item.menu}</span>
+                    <span className="text-[12px] sm:text-[13px] text-[#8e8e93] shrink-0">
                       {new Date(item.date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                <div className="p-4">
+                <div className="p-3 sm:p-4">
                   {/* ข้อมูลก่อนกิน */}
-                  <div className="mb-4">
-                    <div className="text-[13px] font-semibold text-green-600 mb-2">🍽️ ก่อนกิน</div>
-                    <div className="flex gap-3 items-start">
+                  <div className="mb-3 sm:mb-4">
+                    <div className="text-[12px] sm:text-[13px] font-semibold text-green-600 mb-1.5 sm:mb-2">🍽️ ก่อนกิน</div>
+                    <div className="flex gap-2.5 sm:gap-3 items-start">
                       <img 
                         src={item.image} 
                         alt={item.menu}
-                        className="w-16 h-16 rounded-lg object-cover bg-[#f2f2f7]"
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover bg-[#f2f2f7] shrink-0"
                       />
-                      <div className="flex-1">
-                        <div className="grid grid-cols-2 gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-[13px] text-[#8e8e93]">{item.cal} kcal</span>
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 shrink-0"></div>
+                            <span className="text-[12px] sm:text-[13px] text-[#8e8e93] truncate">{item.cal} kcal</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            <span className="text-[13px] text-[#8e8e93]">{item.protein}g โปรตีน</span>
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shrink-0"></div>
+                            <span className="text-[12px] sm:text-[13px] text-[#8e8e93] truncate">{item.protein}g โปรตีน</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                            <span className="text-[13px] text-[#8e8e93]">{item.carb}g คาร์บ</span>
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500 shrink-0"></div>
+                            <span className="text-[12px] sm:text-[13px] text-[#8e8e93] truncate">{item.carb}g คาร์บ</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                            <span className="text-[13px] text-[#8e8e93]">{item.fat}g ไขมัน</span>
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 shrink-0"></div>
+                            <span className="text-[12px] sm:text-[13px] text-[#8e8e93] truncate">{item.fat}g ไขมัน</span>
                           </div>
                         </div>
                       </div>
@@ -1080,33 +1080,33 @@ const FoodMenu = () => {
 
                   {/* ข้อมูลหลังกิน (ถ้ามี) */}
                   {afterData && (
-                    <div className="mb-3 pt-3 border-t border-[#e5e5ea]">
-                      <div className="text-[13px] font-semibold text-blue-600 mb-2">
+                    <div className="mb-2.5 sm:mb-3 pt-2.5 sm:pt-3 border-t border-[#e5e5ea]">
+                      <div className="text-[12px] sm:text-[13px] font-semibold text-blue-600 mb-1.5 sm:mb-2">
                          หลังกิน (กินไป {afterData.eatPercent}%)
                       </div>
-                      <div className="flex gap-3 items-start">
+                      <div className="flex gap-2.5 sm:gap-3 items-start">
                         <img 
                           src={afterData.image} 
                           alt={`${item.menu} - หลังกิน`}
-                          className="w-16 h-16 rounded-lg object-cover bg-[#f2f2f7]"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover bg-[#f2f2f7] shrink-0"
                         />
-                        <div className="flex-1">
-                          <div className="grid grid-cols-2 gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                             <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                              <span className="text-[13px] text-blue-600 font-medium">{afterData.cal} kcal</span>
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 shrink-0"></div>
+                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-medium truncate">{afterData.cal} kcal</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                              <span className="text-[13px] text-blue-600 font-medium">{afterData.protein}g โปรตีน</span>
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shrink-0"></div>
+                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-medium truncate">{afterData.protein}g โปรตีน</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                              <span className="text-[13px] text-blue-600 font-medium">{afterData.carb}g คาร์บ</span>
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500 shrink-0"></div>
+                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-medium truncate">{afterData.carb}g คาร์บ</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                              <span className="text-[13px] text-blue-600 font-medium">{afterData.fat}g ไขมัน</span>
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 shrink-0"></div>
+                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-medium truncate">{afterData.fat}g ไขมัน</span>
                             </div>
                           </div>
                         </div>
@@ -1115,12 +1115,12 @@ const FoodMenu = () => {
                   )}
 
                   {/* ปุ่มต่างๆ */}
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
                     {/* ปุ่มเปรียบเทียบ - แสดงเฉพาะเมื่อยังไม่มีรูปหลังกิน */}
                     {!afterData && (
                       <button
                         onClick={() => handleCompareFood(item)}
-                        className="w-full text-[13px] text-blue-500 font-medium hover:text-blue-600 transition-colors text-left"
+                        className="w-full text-[12px] sm:text-[13px] text-blue-500 font-medium hover:text-blue-600 transition-colors text-left"
                       >
                         เปรียบเทียบอาหารหลังกิน
                       </button>
@@ -1132,13 +1132,13 @@ const FoodMenu = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleDeleteAfter(afterData.id)}
-                          className="flex-1 text-[13px] text-orange-500 font-medium hover:text-orange-600 transition-colors"
+                          className="flex-1 text-[12px] sm:text-[13px] text-orange-500 font-medium hover:text-orange-600 transition-colors"
                         >
                           ลบรูปหลังกิน
                         </button>
                         <button
                           onClick={() => handleDeleteBoth(item.id, afterData.id)}
-                          className="px-4 py-2 text-[13px] text-white font-semibold bg-red-600 rounded-lg hover:bg-red-700 active:scale-[0.98] transition-all duration-200"
+                          className="px-3 sm:px-4 py-1.5 sm:py-2 text-[12px] sm:text-[13px] text-white font-semibold bg-red-600 rounded-lg hover:bg-red-700 active:scale-[0.98] transition-all duration-200"
                         >
                           ลบทั้งหมด
                         </button>
@@ -1147,7 +1147,7 @@ const FoodMenu = () => {
                       // ไม่มีรูปหลังกิน - แสดงปุ่มลบปกติ
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="text-[13px] text-red-500 font-medium hover:text-red-600 transition-colors text-left"
+                        className="text-[12px] sm:text-[13px] text-red-500 font-medium hover:text-red-600 transition-colors text-left"
                       >
                         ลบรายการ
                       </button>
@@ -1161,32 +1161,32 @@ const FoodMenu = () => {
         </div>
 
         {/* Summary */}
-        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard animate-delay-300">
-          <h5 className="text-[15px] font-semibold text-black mb-3">สรุปรวม</h5>
-          <div className="grid grid-cols-4 gap-2">
+        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard animate-delay-300">
+          <h5 className="text-[14px] sm:text-[15px] font-semibold text-black mb-2.5 sm:mb-3">สรุปรวม</h5>
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
             <div className="text-center">
-              <div className="text-[18px] font-bold text-green-500">
+              <div className="text-[16px] sm:text-[18px] font-bold text-green-500">
                 {totalCal}
               </div>
-              <div className="text-[11px] text-[#8e8e93]">แคลอรี่</div>
+              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">แคลอรี่</div>
             </div>
             <div className="text-center">
-              <div className="text-[18px] font-bold text-blue-500">
+              <div className="text-[16px] sm:text-[18px] font-bold text-blue-500">
                 {totalProtein}g
               </div>
-              <div className="text-[11px] text-[#8e8e93]">โปรตีน</div>
+              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">โปรตีน</div>
             </div>
             <div className="text-center">
-              <div className="text-[18px] font-bold text-orange-500">
+              <div className="text-[16px] sm:text-[18px] font-bold text-orange-500">
                 {totalCarb}g
               </div>
-              <div className="text-[11px] text-[#8e8e93]">คาร์บ</div>
+              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">คาร์บ</div>
             </div>
             <div className="text-center">
-              <div className="text-[18px] font-bold text-red-500">
+              <div className="text-[16px] sm:text-[18px] font-bold text-red-500">
                 {totalFat}g
               </div>
-              <div className="text-[11px] text-[#8e8e93]">ไขมัน</div>
+              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">ไขมัน</div>
             </div>
           </div>
         </div>

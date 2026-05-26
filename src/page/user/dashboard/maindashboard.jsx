@@ -825,28 +825,28 @@ const MainDashboard = () => {
       }}
     >
       {/* Navbar */}
-      <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-6 shadow-sm">
+      <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-3 sm:px-4 py-4 sm:py-6 shadow-sm">
         <div className="max-w-md mx-auto flex justify-between items-center">
-          <h1 className="text-[28px] font-bold text-white tracking-tight">
+          <h1 className="text-[24px] sm:text-[28px] font-bold text-white tracking-tight">
             Calories Daily
           </h1>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-md mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-3 sm:space-y-4">
         {/* Profile Card */}
-        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard">
-          <div className="flex items-center gap-3">
+        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <img
               src={mockUser.profilePic}
               alt="profile"
-              className="w-14 h-14 rounded-full border-2 border-green-400"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-green-400"
             />
             <div>
-              <h3 className="text-[17px] font-semibold text-black">
+              <h3 className="text-[15px] sm:text-[17px] font-semibold text-black">
                 {mockUser.name}
               </h3>
-              <p className="text-[13px] text-[#8e8e93]">
+              <p className="text-[12px] sm:text-[13px] text-[#8e8e93]">
                 เป้าหมาย: {userTDEE ? userTDEE.toLocaleString() : "-"} kcal/วัน
               </p>
             </div>
@@ -854,44 +854,44 @@ const MainDashboard = () => {
         </div>
 
         {/* Calorie Progress */}
-        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard animate-delay-100">
-          <div className="flex justify-between items-center mb-3">
-            <h5 className="text-[17px] font-semibold text-black">
+        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard animate-delay-100">
+          <div className="flex justify-between items-center mb-2.5 sm:mb-3">
+            <h5 className="text-[15px] sm:text-[17px] font-semibold text-black">
               พลังงานวันนี้
             </h5>
             <span
-              className={`${getProgressBadgeColor()} text-white text-[13px] font-semibold px-3 py-1 rounded-full transition-all duration-300`}
+              className={`${getProgressBadgeColor()} text-white text-[12px] sm:text-[13px] font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full transition-all duration-300`}
             >
               {Math.round(animatedPercentage)}%
             </span>
           </div>
 
-          <div className="relative h-8 bg-[#e5e5ea] rounded-full overflow-hidden mb-3">
+          <div className="relative h-7 sm:h-8 bg-[#e5e5ea] rounded-full overflow-hidden mb-2.5 sm:mb-3">
             <div
               className={`absolute inset-0 bg-gradient-to-r ${getProgressColor()} transition-all duration-300 ease-out`}
               style={{ width: `${Math.min(animatedPercentage, 100)}%` }}
             />
-            <div className="absolute inset-0 flex items-center justify-center text-[#8e8e93] text-[13px] font-semibold opacity-50">
+            <div className="absolute inset-0 flex items-center justify-center text-[#8e8e93] text-[11px] sm:text-[13px] font-semibold opacity-50">
               {animatedCal} / {userTDEE || "-"}
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
             <div>
-              <div className="text-[20px] font-bold text-red-500 transition-all duration-300">
+              <div className="text-[18px] sm:text-[20px] font-bold text-red-500 transition-all duration-300">
                 {animatedCal.toLocaleString()}
               </div>
-              <div className="text-[11px] text-[#8e8e93]">บริโภคแล้ว</div>
+              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">บริโภคแล้ว</div>
             </div>
             <div>
-              <div className="text-[20px] font-bold text-black">
+              <div className="text-[18px] sm:text-[20px] font-bold text-black">
                 {userTDEE ? userTDEE.toLocaleString() : "-"}
               </div>
-              <div className="text-[11px] text-[#8e8e93]">เป้าหมาย</div>
+              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">เป้าหมาย</div>
             </div>
             <div>
               <div
-                className={`text-[20px] font-bold transition-all duration-300 ${remainingCalories >= 0 ? "text-green-500" : "text-red-500"}`}
+                className={`text-[18px] sm:text-[20px] font-bold transition-all duration-300 ${remainingCalories >= 0 ? "text-green-500" : "text-red-500"}`}
               >
                 {userTDEE
                   ? remainingCalories >= 0
@@ -899,78 +899,16 @@ const MainDashboard = () => {
                     : `+${Math.abs(mockUser.tdee - animatedCal).toLocaleString()}`
                   : "-"}
               </div>
-              <div className="text-[11px] text-[#8e8e93]">
+              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">
                 {remainingCalories >= 0 ? "เหลือ" : "เกิน"}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Nutrition Summary with Chart */}
-        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard animate-delay-200">
-          <div className="text-center mb-4">
-            <p className="text-[13px] text-[#8e8e93]">สรุปโภชนาการวันนี้</p>
-          </div>
-
-          <div className="flex items-center justify-center mb-4 relative">
-            <div className="w-48 h-48">
-              <Doughnut data={chartData} options={chartOptions} />
-            </div>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="text-[24px] font-bold text-black">{Math.round(totalCal)}</div>
-              <div className="text-[11px] text-[#8e8e93]">/ {userTDEE || '-'} kcal</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <div>
-                <div className="text-[15px] font-semibold text-black">
-                  {totalProtein}g
-                </div>
-                <div className="text-[11px] text-[#8e8e93]">
-                  โปรตีน ({proteinCal} kcal)
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-              <div>
-                <div className="text-[15px] font-semibold text-black">
-                  {totalCarb}g
-                </div>
-                <div className="text-[11px] text-[#8e8e93]">
-                  คาร์บ ({carbCal} kcal)
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div>
-                <div className="text-[15px] font-semibold text-black">
-                  {totalFat}g
-                </div>
-                <div className="text-[11px] text-[#8e8e93]">
-                  ไขมัน ({fatCal} kcal)
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#e5e5ea]"></div>
-              <div>
-                <div className="text-[15px] font-semibold text-black">
-                  {Math.round(remainingTDEE)}
-                </div>
-                <div className="text-[11px] text-[#8e8e93]">เหลือ (kcal)</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Date Filter */}
-        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard animate-delay-300">
-          <label className="block text-[13px] text-black mb-2">
+        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard animate-delay-200">
+          <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">
             เลือกวันที่
           </label>
           <div className="flex gap-2">
@@ -978,15 +916,77 @@ const MainDashboard = () => {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-3 py-2 text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
+              className="flex-1 px-2.5 sm:px-3 py-2 text-[14px] sm:text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
             />
             <button
               onClick={handleViewDate}
               disabled={loading}
-              className="px-4 py-2 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 sm:px-4 py-2 text-[14px] sm:text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "กำลังโหลด..." : "ดู"}
             </button>
+          </div>
+        </div>
+
+        {/* Nutrition Summary with Chart */}
+        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard animate-delay-300">
+          <div className="text-center mb-3 sm:mb-4">
+            <p className="text-[12px] sm:text-[13px] text-[#8e8e93]">สรุปโภชนาการวันนี้</p>
+          </div>
+
+          <div className="flex items-center justify-center mb-3 sm:mb-4 relative">
+            <div className="w-40 h-40 sm:w-48 sm:h-48">
+              <Doughnut data={chartData} options={chartOptions} />
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div className="text-[20px] sm:text-[24px] font-bold text-black">{Math.round(totalCal)}</div>
+              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">/ {userTDEE || '-'} kcal</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-500"></div>
+              <div>
+                <div className="text-[14px] sm:text-[15px] font-semibold text-black">
+                  {totalProtein}g
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">
+                  โปรตีน ({proteinCal} kcal)
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-orange-500"></div>
+              <div>
+                <div className="text-[14px] sm:text-[15px] font-semibold text-black">
+                  {totalCarb}g
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">
+                  คาร์บ ({carbCal} kcal)
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+              <div>
+                <div className="text-[14px] sm:text-[15px] font-semibold text-black">
+                  {totalFat}g
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">
+                  ไขมัน ({fatCal} kcal)
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#e5e5ea]"></div>
+              <div>
+                <div className="text-[14px] sm:text-[15px] font-semibold text-black">
+                  {Math.round(remainingTDEE)}
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">เหลือ (kcal)</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -997,26 +997,26 @@ const MainDashboard = () => {
       {/* Camera Modal */}
       {showCameraModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-fadeIn"
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-fadeIn px-3 sm:px-0"
           onClick={() => setShowCameraModal(false)}
         >
           <div
-            className="bg-white rounded-t-[20px] w-full max-w-md pb-safe animate-slideUp"
+            className="bg-white rounded-t-[16px] sm:rounded-t-[20px] w-full max-w-md pb-safe animate-slideUp"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4">
-              <div className="w-12 h-1 bg-[#e5e5ea] rounded-full mx-auto mb-4"></div>
-              <h3 className="text-[20px] font-semibold text-black text-center mb-4">
+            <div className="p-3 sm:p-4">
+              <div className="w-10 sm:w-12 h-1 bg-[#e5e5ea] rounded-full mx-auto mb-3 sm:mb-4"></div>
+              <h3 className="text-[18px] sm:text-[20px] font-semibold text-black text-center mb-3 sm:mb-4">
                 เพิ่มรูปอาหาร
               </h3>
 
               <div className="space-y-2">
                 <button
                   onClick={handleCameraCapture}
-                  className="w-full py-4 text-[17px] font-semibold text-black bg-[#f2f2f7] rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
+                  className="w-full py-3 sm:py-4 text-[15px] sm:text-[17px] font-semibold text-black bg-[#f2f2f7] rounded-[10px] sm:rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1039,10 +1039,10 @@ const MainDashboard = () => {
 
                 <button
                   onClick={handleGallerySelect}
-                  className="w-full py-4 text-[17px] font-semibold text-black bg-[#f2f2f7] rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
+                  className="w-full py-3 sm:py-4 text-[15px] sm:text-[17px] font-semibold text-black bg-[#f2f2f7] rounded-[10px] sm:rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1059,7 +1059,7 @@ const MainDashboard = () => {
 
                 <button
                   onClick={() => setShowCameraModal(false)}
-                  className="w-full py-4 text-[17px] font-semibold text-red-500 bg-white rounded-[12px] hover:bg-[#f2f2f7] active:scale-[0.98] transition-all duration-200"
+                  className="w-full py-3 sm:py-4 text-[15px] sm:text-[17px] font-semibold text-red-500 bg-white rounded-[10px] sm:rounded-[12px] hover:bg-[#f2f2f7] active:scale-[0.98] transition-all duration-200"
                 >
                   ยกเลิก
                 </button>
@@ -1141,31 +1141,31 @@ const MainDashboard = () => {
       {/* Confirm Food Data Modal */}
       {showConfirmModal && pendingFoodData && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn p-3 sm:p-4"
           onClick={handleCancelSave}
         >
           <div
-            className="bg-white rounded-[20px] p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto animate-slideUp"
+            className="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto animate-slideUp"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-[20px] font-semibold text-black text-center mb-4">
+            <h3 className="text-[18px] sm:text-[20px] font-semibold text-black text-center mb-3 sm:mb-4">
               ตรวจสอบข้อมูล
             </h3>
 
             {/* แสดงรูปภาพ */}
             {pendingImagePreview && (
-              <div className="mb-4">
+              <div className="mb-3 sm:mb-4">
                 <img
                   src={pendingImagePreview}
                   alt="Food preview"
-                  className="w-full h-48 object-cover rounded-[12px]"
+                  className="w-full h-40 sm:h-48 object-cover rounded-[10px] sm:rounded-[12px]"
                 />
               </div>
             )}
 
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-[15px] text-[#8e8e93]">เมนู:</span>
+            <div className="space-y-2.5 sm:space-y-3 mb-4 sm:mb-6">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-[14px] sm:text-[15px] text-[#8e8e93] shrink-0">เมนู:</span>
                 <input
                   type="text"
                   value={pendingFoodData.menu}
@@ -1175,12 +1175,12 @@ const MainDashboard = () => {
                       menu: e.target.value,
                     })
                   }
-                  className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none flex-1 ml-2"
+                  className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none flex-1 min-w-0"
                 />
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-[15px] text-[#8e8e93]">แคลอรี่:</span>
+                <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">แคลอรี่:</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -1191,14 +1191,14 @@ const MainDashboard = () => {
                         cal: Number(e.target.value),
                       })
                     }
-                    className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                    className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-20 sm:w-24"
                   />
-                  <span className="text-[13px] text-[#8e8e93]">kcal</span>
+                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93]">kcal</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-[15px] text-[#8e8e93]">โปรตีน:</span>
+                <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">โปรตีน:</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -1209,14 +1209,14 @@ const MainDashboard = () => {
                         protein: Number(e.target.value),
                       })
                     }
-                    className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                    className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-20 sm:w-24"
                   />
-                  <span className="text-[13px] text-[#8e8e93]">g</span>
+                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93]">g</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-[15px] text-[#8e8e93]">คาร์บ:</span>
+                <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">คาร์บ:</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -1227,14 +1227,14 @@ const MainDashboard = () => {
                         carb: Number(e.target.value),
                       })
                     }
-                    className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                    className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-20 sm:w-24"
                   />
-                  <span className="text-[13px] text-[#8e8e93]">g</span>
+                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93]">g</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-[15px] text-[#8e8e93]">ไขมัน:</span>
+                <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">ไขมัน:</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -1245,9 +1245,9 @@ const MainDashboard = () => {
                         fat: Number(e.target.value),
                       })
                     }
-                    className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                    className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-20 sm:w-24"
                   />
-                  <span className="text-[13px] text-[#8e8e93]">g</span>
+                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93]">g</span>
                 </div>
               </div>
             </div>
@@ -1255,13 +1255,13 @@ const MainDashboard = () => {
             <div className="flex gap-2">
               <button
                 onClick={handleCancelSave}
-                className="flex-1 py-3 text-[15px] font-semibold text-red-500 bg-[#f2f2f7] rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200"
+                className="flex-1 py-2.5 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-red-500 bg-[#f2f2f7] rounded-[10px] sm:rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleConfirmSave}
-                className="flex-1 py-3 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
+                className="flex-1 py-2.5 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[10px] sm:rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
               >
                 บันทึก
               </button>

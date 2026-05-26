@@ -59,70 +59,70 @@ const Profile = () => {
       style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
     >
       {/* Navbar */}
-      <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-6 shadow-sm">
+      <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-3 sm:px-4 py-4 sm:py-6 shadow-sm">
         <div className="max-w-md mx-auto">
-          <h1 className="text-[28px] font-bold text-white tracking-tight">
+          <h1 className="text-[24px] sm:text-[28px] font-bold text-white tracking-tight">
             Calories Daily
           </h1>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-md mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-3 sm:space-y-4">
         {/* Profile Card */}
-        <div className="bg-white rounded-[12px] p-6 shadow-sm text-center">
+        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-4 sm:p-6 shadow-sm text-center">
           <img 
             src={user.picture} 
             alt="profile" 
-            className="w-24 h-24 rounded-full border-4 border-green-400 mx-auto mb-4"
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-green-400 mx-auto mb-3 sm:mb-4"
           />
-          <h3 className="text-[20px] font-semibold text-black mb-1">{user.name}</h3>
-          <p className="text-[13px] text-[#8e8e93]">LINE User ID: {user.id}</p>
+          <h3 className="text-[18px] sm:text-[20px] font-semibold text-black mb-1">{user.name}</h3>
+          <p className="text-[12px] sm:text-[13px] text-[#8e8e93]">LINE User ID: {user.id}</p>
         </div>
 
         {/* Loading */}
         {isLoading ? (
-          <div className="bg-white rounded-[12px] p-6 shadow-sm text-center">
+          <div className="bg-white rounded-[10px] sm:rounded-[12px] p-4 sm:p-6 shadow-sm text-center">
             <div className="w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-            <p className="text-[15px] text-[#8e8e93]">กำลังโหลดข้อมูล...</p>
+            <p className="text-[14px] sm:text-[15px] text-[#8e8e93]">กำลังโหลดข้อมูล...</p>
           </div>
         ) : userData ? (
           <>
             {/* Personal Info */}
-            <div className="bg-white rounded-[12px] overflow-hidden shadow-sm">
-              <div className="px-4 py-3 bg-[#f2f2f7] border-b border-[#e5e5ea]">
-                <h5 className="text-[13px] font-semibold text-[#8e8e93] uppercase">ข้อมูลส่วนตัว</h5>
+            <div className="bg-white rounded-[10px] sm:rounded-[12px] overflow-hidden shadow-sm">
+              <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[#f2f2f7] border-b border-[#e5e5ea]">
+                <h5 className="text-[12px] sm:text-[13px] font-semibold text-[#8e8e93] uppercase">ข้อมูลส่วนตัว</h5>
               </div>
               <div className="divide-y divide-[#e5e5ea]">
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[15px] text-[#8e8e93]">เพศ</span>
-                  <span className="text-[15px] text-black font-medium">
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center">
+                  <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">เพศ</span>
+                  <span className="text-[14px] sm:text-[15px] text-black font-medium">
                     {userData.Gender === 'male' ? 'ชาย' : userData.Gender === 'female' ? 'หญิง' : '-'}
                   </span>
                 </div>
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[15px] text-[#8e8e93]">น้ำหนัก</span>
-                  <span className="text-[15px] text-black font-medium">{userData.Weight || '-'} kg</span>
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center">
+                  <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">น้ำหนัก</span>
+                  <span className="text-[14px] sm:text-[15px] text-black font-medium">{userData.Weight || '-'} kg</span>
                 </div>
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[15px] text-[#8e8e93]">ส่วนสูง</span>
-                  <span className="text-[15px] text-black font-medium">{userData.Height || '-'} cm</span>
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center">
+                  <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">ส่วนสูง</span>
+                  <span className="text-[14px] sm:text-[15px] text-black font-medium">{userData.Height || '-'} cm</span>
                 </div>
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[15px] text-[#8e8e93]">อายุ</span>
-                  <span className="text-[15px] text-black font-medium">{userData.Age || '-'} ปี</span>
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center">
+                  <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">อายุ</span>
+                  <span className="text-[14px] sm:text-[15px] text-black font-medium">{userData.Age || '-'} ปี</span>
                 </div>
               </div>
             </div>
 
             {/* Activity & Goal */}
-            <div className="bg-white rounded-[12px] overflow-hidden shadow-sm">
-              <div className="px-4 py-3 bg-[#f2f2f7] border-b border-[#e5e5ea]">
-                <h5 className="text-[13px] font-semibold text-[#8e8e93] uppercase">กิจกรรมและเป้าหมาย</h5>
+            <div className="bg-white rounded-[10px] sm:rounded-[12px] overflow-hidden shadow-sm">
+              <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-[#f2f2f7] border-b border-[#e5e5ea]">
+                <h5 className="text-[12px] sm:text-[13px] font-semibold text-[#8e8e93] uppercase">กิจกรรมและเป้าหมาย</h5>
               </div>
               <div className="divide-y divide-[#e5e5ea]">
-                <div className="px-4 py-3">
-                  <span className="text-[13px] text-[#8e8e93] block mb-1">ระดับกิจกรรม</span>
-                  <span className="text-[15px] text-black">
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3">
+                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93] block mb-1">ระดับกิจกรรม</span>
+                  <span className="text-[14px] sm:text-[15px] text-black">
                     {userData['Activity Level'] === 'sedentary' && 'นั่งทำงานเป็นส่วนใหญ่'}
                     {userData['Activity Level'] === 'light' && 'ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์'}
                     {userData['Activity Level'] === 'moderate' && 'ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์'}
@@ -131,9 +131,9 @@ const Profile = () => {
                     {!userData['Activity Level'] && '-'}
                   </span>
                 </div>
-                <div className="px-4 py-3">
-                  <span className="text-[13px] text-[#8e8e93] block mb-1">เป้าหมาย</span>
-                  <span className="text-[15px] text-black">
+                <div className="px-3 sm:px-4 py-2.5 sm:py-3">
+                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93] block mb-1">เป้าหมาย</span>
+                  <span className="text-[14px] sm:text-[15px] text-black">
                     {userData.Goal === 'maintain' && 'คงน้ำหนัก'}
                     {userData.Goal === 'lose' && 'ลดน้ำหนัก'}
                     {userData.Goal === 'gain' && 'เพิ่มน้ำหนัก'}
@@ -144,35 +144,35 @@ const Profile = () => {
             </div>
 
             {/* TDEE */}
-            <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] p-6 shadow-sm text-center">
-              <p className="text-[13px] text-white/90 mb-2">ความต้องการพลังงานรายวัน (TDEE)</p>
-              <p className="text-[36px] font-bold text-white">
+            <div className="bg-gradient-to-r from-green-400 to-emerald-500 rounded-[10px] sm:rounded-[12px] p-4 sm:p-6 shadow-sm text-center">
+              <p className="text-[12px] sm:text-[13px] text-white/90 mb-2">ความต้องการพลังงานรายวัน (TDEE)</p>
+              <p className="text-[30px] sm:text-[36px] font-bold text-white">
                 {userData.Cal ? parseInt(userData.Cal).toLocaleString() : '-'}
-                <span className="text-[17px] font-normal ml-2">kcal/วัน</span>
+                <span className="text-[15px] sm:text-[17px] font-normal ml-2">kcal/วัน</span>
               </p>
             </div>
 
             {/* Edit Button */}
             <button
               onClick={() => navigate('/regis')}
-              className="w-full bg-white rounded-[12px] p-4 shadow-sm hover:bg-[#f9f9f9] active:bg-[#f2f2f7] transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm hover:bg-[#f9f9f9] active:bg-[#f2f2f7] transition-colors flex items-center justify-center gap-2"
             >
-              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              <span className="text-[17px] font-semibold text-green-500">แก้ไขข้อมูล</span>
+              <span className="text-[15px] sm:text-[17px] font-semibold text-green-500">แก้ไขข้อมูล</span>
             </button>
           </>
         ) : (
-          <div className="bg-white rounded-[12px] p-6 shadow-sm text-center">
-            <svg className="w-16 h-16 text-[#8e8e93] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-[10px] sm:rounded-[12px] p-4 sm:p-6 shadow-sm text-center">
+            <svg className="w-14 h-14 sm:w-16 sm:h-16 text-[#8e8e93] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
-            <p className="text-[17px] font-semibold text-black mb-2">ยังไม่มีข้อมูล</p>
-            <p className="text-[13px] text-[#8e8e93] mb-4">กรุณากรอกข้อมูลส่วนตัวของคุณ</p>
+            <p className="text-[16px] sm:text-[17px] font-semibold text-black mb-2">ยังไม่มีข้อมูล</p>
+            <p className="text-[12px] sm:text-[13px] text-[#8e8e93] mb-4">กรุณากรอกข้อมูลส่วนตัวของคุณ</p>
             <button
               onClick={() => navigate('/regis')}
-              className="px-6 py-3 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[10px] sm:rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
             >
               กรอกข้อมูล
             </button>
