@@ -617,7 +617,8 @@ const FoodMenu = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'camera';
+    // ใช้ capture="environment" สำหรับกล้องหลัง
+    input.setAttribute('capture', 'environment');
     
     input.onchange = async (e) => {
       const file = e.target.files[0];
@@ -758,7 +759,8 @@ const FoodMenu = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'camera';
+    // ใช้ capture="environment" สำหรับกล้องหลัง (ทำงานได้ดีกว่าในทุกอุปกรณ์)
+    input.setAttribute('capture', 'environment');
     
     input.onchange = async (e) => {
       const file = e.target.files[0];
@@ -999,13 +1001,19 @@ const FoodMenu = () => {
       <div className="max-w-md mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-3 sm:space-y-4">
         {/* Date Filter */}
         <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard">
-          <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">เลือกวันที่</label>
+          <label htmlFor="dateSelectFood" className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">เลือกวันที่</label>
           <div className="flex gap-2">
             <input 
+              id="dateSelectFood"
               type="date" 
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-2.5 sm:px-3 py-2 text-[14px] sm:text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
+              className="flex-1 px-2.5 sm:px-3 py-2 text-[14px] sm:text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer"
+              style={{
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                appearance: 'none'
+              }}
             />
             <button 
               onClick={handleViewDate}

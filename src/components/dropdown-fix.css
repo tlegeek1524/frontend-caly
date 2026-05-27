@@ -1,0 +1,64 @@
+/* Fix สำหรับ Dropdown และ Date Picker ให้ทำงานได้ในทุกเบราว์เซอร์ */
+
+/* ปรับแต่ง select dropdown */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem !important;
+}
+
+/* ปรับแต่ง date input */
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+}
+
+/* แก้ไขปัญหา date picker ใน iOS Safari */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  height: auto;
+  color: transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* แก้ไขปัญหา date picker ใน Firefox */
+input[type="date"]::-moz-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+/* ปรับแต่ง dropdown arrow ใน iOS */
+select::-ms-expand {
+  display: none;
+}
+
+/* เพิ่ม touch feedback สำหรับ mobile */
+@media (hover: none) and (pointer: coarse) {
+  select:active,
+  input[type="date"]:active {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* แก้ไขปัญหา zoom ใน iOS เมื่อ focus */
+@supports (-webkit-touch-callout: none) {
+  select,
+  input[type="date"],
+  input[type="number"],
+  input[type="text"] {
+    font-size: 16px !important;
+  }
+}
