@@ -281,23 +281,30 @@ const Regispage = () => {
             {/* Gender */}
             <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#e5e5ea] transition-colors duration-200">
               <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">เพศ</label>
-              <select 
-                name="gender" 
-                value={formData.gender} 
-                onChange={handleChange}
-                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black appearance-none focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 10px center',
-                  paddingRight: '32px'
-                }}
-                required
-              >
-                <option value="">เลือกเพศ</option>
-                <option value="male">ชาย</option>
-                <option value="female">หญิง</option>
-              </select>
+              <div className="relative">
+                <select 
+                  name="gender" 
+                  value={formData.gender} 
+                  onChange={handleChange}
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer"
+                  style={{
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    appearance: 'none',
+                    paddingRight: '32px'
+                  }}
+                  required
+                >
+                  <option value="">เลือกเพศ</option>
+                  <option value="male">ชาย</option>
+                  <option value="female">หญิง</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="w-4 h-4 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Weight & Height */}
@@ -355,48 +362,62 @@ const Regispage = () => {
             {/* Activity Level */}
             <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#e5e5ea]">
               <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">ระดับกิจกรรม</label>
-              <select 
-                name="activityLevel" 
-                value={formData.activityLevel}
-                onChange={handleChange}
-                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[14px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black appearance-none focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 10px center',
-                  paddingRight: '32px'
-                }}
-                required
-              >
-                <option value="">เลือกระดับกิจกรรม</option>
-                <option value="sedentary">นั่งทำงานเป็นส่วนใหญ่ ไม่ค่อยออกกำลังกาย</option>
-                <option value="light">ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์</option>
-                <option value="moderate">ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์</option>
-                <option value="active">ออกกำลังกายหนัก 6-7 วัน/สัปดาห์</option>
-                <option value="very_active">ออกกำลังกายหนักมาก หรือมีงานใช้แรง</option>
-              </select>
+              <div className="relative">
+                <select 
+                  name="activityLevel" 
+                  value={formData.activityLevel}
+                  onChange={handleChange}
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[14px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer"
+                  style={{
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    appearance: 'none',
+                    paddingRight: '32px'
+                  }}
+                  required
+                >
+                  <option value="">เลือกระดับกิจกรรม</option>
+                  <option value="sedentary">นั่งทำงานเป็นส่วนใหญ่ ไม่ค่อยออกกำลังกาย</option>
+                  <option value="light">ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์</option>
+                  <option value="moderate">ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์</option>
+                  <option value="active">ออกกำลังกายหนัก 6-7 วัน/สัปดาห์</option>
+                  <option value="very_active">ออกกำลังกายหนักมาก หรือมีงานใช้แรง</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="w-4 h-4 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Goal */}
             <div className="px-3 sm:px-4 py-2.5 sm:py-3">
               <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">เป้าหมาย</label>
-              <select 
-                name="goal" 
-                value={formData.goal}
-                onChange={handleChange}
-                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black appearance-none focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 10px center',
-                  paddingRight: '32px'
-                }}
-                required
-              >
-                <option value="maintain">คงน้ำหนัก</option>
-                <option value="lose">ลดน้ำหนัก (ลด 500 kcal/วัน)</option>
-                <option value="gain">เพิ่มน้ำหนัก (เพิ่ม 500 kcal/วัน)</option>
-              </select>
+              <div className="relative">
+                <select 
+                  name="goal" 
+                  value={formData.goal}
+                  onChange={handleChange}
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer"
+                  style={{
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    appearance: 'none',
+                    paddingRight: '32px'
+                  }}
+                  required
+                >
+                  <option value="maintain">คงน้ำหนัก</option>
+                  <option value="lose">ลดน้ำหนัก (ลด 500 kcal/วัน)</option>
+                  <option value="gain">เพิ่มน้ำหนัก (เพิ่ม 500 kcal/วัน)</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="w-4 h-4 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
 
