@@ -77,7 +77,7 @@ const Settings = () => {
 
         {/* Version */}
         <div className="text-center py-3 sm:py-4">
-          <p className="text-[12px] sm:text-[13px] text-[#8e8e93]">Calories Daily v2.2</p>
+          <p className="text-[12px] sm:text-[13px] text-[#8e8e93]">Calories Daily v2.3</p>
         </div>
       </div>
 
