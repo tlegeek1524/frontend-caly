@@ -286,12 +286,16 @@ const Regispage = () => {
                   name="gender" 
                   value={formData.gender} 
                   onChange={handleChange}
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer appearance-none"
                   style={{
                     WebkitAppearance: 'none',
                     MozAppearance: 'none',
                     appearance: 'none',
-                    paddingRight: '32px'
+                    paddingRight: '40px',
+                    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 0.75rem center',
+                    backgroundSize: '1.25em 1.25em'
                   }}
                   required
                 >
@@ -299,11 +303,6 @@ const Regispage = () => {
                   <option value="male">ชาย</option>
                   <option value="female">หญิง</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <svg className="w-4 h-4 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
               </div>
             </div>
 
@@ -367,12 +366,16 @@ const Regispage = () => {
                   name="activityLevel" 
                   value={formData.activityLevel}
                   onChange={handleChange}
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[14px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[14px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer appearance-none"
                   style={{
                     WebkitAppearance: 'none',
                     MozAppearance: 'none',
                     appearance: 'none',
-                    paddingRight: '32px'
+                    paddingRight: '40px',
+                    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 0.75rem center',
+                    backgroundSize: '1.25em 1.25em'
                   }}
                   required
                 >
@@ -383,11 +386,6 @@ const Regispage = () => {
                   <option value="active">ออกกำลังกายหนัก 6-7 วัน/สัปดาห์</option>
                   <option value="very_active">ออกกำลังกายหนักมาก หรือมีงานใช้แรง</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <svg className="w-4 h-4 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
               </div>
             </div>
 
@@ -399,12 +397,16 @@ const Regispage = () => {
                   name="goal" 
                   value={formData.goal}
                   onChange={handleChange}
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer"
+                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer appearance-none"
                   style={{
                     WebkitAppearance: 'none',
                     MozAppearance: 'none',
                     appearance: 'none',
-                    paddingRight: '32px'
+                    paddingRight: '40px',
+                    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 0.75rem center',
+                    backgroundSize: '1.25em 1.25em'
                   }}
                   required
                 >
@@ -412,11 +414,6 @@ const Regispage = () => {
                   <option value="lose">ลดน้ำหนัก (ลด 500 kcal/วัน)</option>
                   <option value="gain">เพิ่มน้ำหนัก (เพิ่ม 500 kcal/วัน)</option>
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <svg className="w-4 h-4 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
               </div>
             </div>
           </div>
