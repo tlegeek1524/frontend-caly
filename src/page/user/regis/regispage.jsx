@@ -281,29 +281,17 @@ const Regispage = () => {
             {/* Gender */}
             <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#e5e5ea] transition-colors duration-200">
               <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">เพศ</label>
-              <div className="relative">
-                <select 
-                  name="gender" 
-                  value={formData.gender} 
-                  onChange={handleChange}
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer appearance-none"
-                  style={{
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    appearance: 'none',
-                    paddingRight: '40px',
-                    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 0.75rem center',
-                    backgroundSize: '1.25em 1.25em'
-                  }}
-                  required
-                >
-                  <option value="">เลือกเพศ</option>
-                  <option value="male">ชาย</option>
-                  <option value="female">หญิง</option>
-                </select>
-              </div>
+              <select 
+                name="gender" 
+                value={formData.gender} 
+                onChange={handleChange}
+                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border border-[#d1d1d6] text-black focus:border-green-400 focus:outline-none transition-all duration-200"
+                required
+              >
+                <option value="">เลือกเพศ</option>
+                <option value="male">ชาย</option>
+                <option value="female">หญิง</option>
+              </select>
             </div>
 
             {/* Weight & Height */}
@@ -361,60 +349,36 @@ const Regispage = () => {
             {/* Activity Level */}
             <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#e5e5ea]">
               <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">ระดับกิจกรรม</label>
-              <div className="relative">
-                <select 
-                  name="activityLevel" 
-                  value={formData.activityLevel}
-                  onChange={handleChange}
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[14px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer appearance-none"
-                  style={{
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    appearance: 'none',
-                    paddingRight: '40px',
-                    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 0.75rem center',
-                    backgroundSize: '1.25em 1.25em'
-                  }}
-                  required
-                >
-                  <option value="">เลือกระดับกิจกรรม</option>
-                  <option value="sedentary">นั่งทำงานเป็นส่วนใหญ่ ไม่ค่อยออกกำลังกาย</option>
-                  <option value="light">ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์</option>
-                  <option value="moderate">ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์</option>
-                  <option value="active">ออกกำลังกายหนัก 6-7 วัน/สัปดาห์</option>
-                  <option value="very_active">ออกกำลังกายหนักมาก หรือมีงานใช้แรง</option>
-                </select>
-              </div>
+              <select 
+                name="activityLevel" 
+                value={formData.activityLevel}
+                onChange={handleChange}
+                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[14px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border border-[#d1d1d6] text-black focus:border-green-400 focus:outline-none transition-all duration-200"
+                required
+              >
+                <option value="">เลือกระดับกิจกรรม</option>
+                <option value="sedentary">นั่งทำงานเป็นส่วนใหญ่ ไม่ค่อยออกกำลังกาย</option>
+                <option value="light">ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์</option>
+                <option value="moderate">ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์</option>
+                <option value="active">ออกกำลังกายหนัก 6-7 วัน/สัปดาห์</option>
+                <option value="very_active">ออกกำลังกายหนักมาก หรือมีงานใช้แรง</option>
+              </select>
             </div>
 
             {/* Goal */}
             <div className="px-3 sm:px-4 py-2.5 sm:py-3">
               <label className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">เป้าหมาย</label>
-              <div className="relative">
-                <select 
-                  name="goal" 
-                  value={formData.goal}
-                  onChange={handleChange}
-                  className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer appearance-none"
-                  style={{
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    appearance: 'none',
-                    paddingRight: '40px',
-                    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 0.75rem center',
-                    backgroundSize: '1.25em 1.25em'
-                  }}
-                  required
-                >
-                  <option value="maintain">คงน้ำหนัก</option>
-                  <option value="lose">ลดน้ำหนัก (ลด 500 kcal/วัน)</option>
-                  <option value="gain">เพิ่มน้ำหนัก (เพิ่ม 500 kcal/วัน)</option>
-                </select>
-              </div>
+              <select 
+                name="goal" 
+                value={formData.goal}
+                onChange={handleChange}
+                className="w-full px-2.5 sm:px-3 py-2 sm:py-2.5 text-[15px] sm:text-[17px] bg-[#f2f2f7] rounded-lg border border-[#d1d1d6] text-black focus:border-green-400 focus:outline-none transition-all duration-200"
+                required
+              >
+                <option value="maintain">คงน้ำหนัก</option>
+                <option value="lose">ลดน้ำหนัก (ลด 500 kcal/วัน)</option>
+                <option value="gain">เพิ่มน้ำหนัก (เพิ่ม 500 kcal/วัน)</option>
+              </select>
             </div>
           </div>
 
