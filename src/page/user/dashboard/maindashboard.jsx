@@ -1211,9 +1211,7 @@ const MainDashboard = () => {
               {/* คำแนะนำ */}
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-[12px]">
                 <p className="text-[12px] text-blue-800 leading-relaxed">
-                  <span className="font-bold">💡 หมายเหตุ:</span> หากปุ่ม "เลือกจากแกลเลอรี่" เปิด Google Photos 
-                  กรุณาเลือก "Files" หรือ "เครื่องของฉัน" จากเมนูด้านบน 
-                  หรือตั้งค่าแอปเปิดไฟล์เริ่มต้นในการตั้งค่ามือถือของคุณ
+                  <span className="font-bold">💡 หมายเหตุ:</span> หากเครื่องใดไม่สามารถ ใช้การอนุณาตการใช้งานกล้องได้ แก้ไขด้วยการถ่ายรูปด้วยแอปกล้องก่อน และนำรูปมาอัพโหลดจาก เลือกรูปจากแกลเลอรี่แทนครับ
                 </p>
               </div>
             </div>
