@@ -394,6 +394,10 @@ const MainDashboard = () => {
   const [pendingImageFile, setPendingImageFile] = useState(null);
   const [pendingImagePreview, setPendingImagePreview] = useState(null);
   const [showPDPA, setShowPDPA] = useState(false);
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [cameraStream, setCameraStream] = useState(null);
+  const videoRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
 
   // เช็คความยินยอม PDPA จาก API
   useEffect(() => {
@@ -663,67 +667,103 @@ const MainDashboard = () => {
   };
 
   const handleCameraCapture = async () => {
-    // ขออนุญาตใช้กล้องก่อน
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      // ปิด stream ทันทีหลังได้รับอนุญาต
-      stream.getTracks().forEach(track => track.stop());
-    } catch (error) {
-      console.warn("ไม่สามารถเข้าถึงกล้องได้:", error);
-      alert("กรุณาอนุญาตการใช้งานกล้องในการตั้งค่าเบราว์เซอร์");
-      return;
-    }
-
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.capture = "environment"; // ใช้กล้องหลัง
+    setShowCameraModal(false);
+    setShowLiveCamera(true);
     
-    // เพิ่ม attributes เพื่อบังคับให้ใช้กล้อง
-    input.setAttribute("capture", "environment");
-
-    input.onchange = async (e) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        setShowCameraModal(false);
-        setIsAnalyzing(true);
-
-        try {
-          const previewUrl = URL.createObjectURL(file);
-
-          console.log("กำลังวิเคราะห์รูปภาพ...");
-          const foodData = await analyzeFoodImage(file);
-          console.log("✅ ผลการวิเคราะห์:", foodData);
-
-          setPendingFoodData(foodData);
-          setPendingImageFile(file);
-          setPendingImagePreview(previewUrl);
-          setShowConfirmModal(true);
-        } catch (error) {
-          console.error("❌ เกิดข้อผิดพลาด:", error);
-          alert("ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองใหม่");
-        } finally {
-          setIsAnalyzing(false);
+    try {
+      // ขออนุญาตและเปิดกล้อง
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // ใช้กล้องหลัง
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        } 
+      });
+      
+      setCameraStream(stream);
+      
+      // รอให้ video element พร้อม
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
         }
-      }
-    };
+      }, 100);
+    } catch (error) {
+      console.error("ไม่สามารถเข้าถึงกล้องได้:", error);
+      alert("ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้องในการตั้งค่าเบราว์เซอร์");
+      setShowLiveCamera(false);
+    }
+  };
 
-    input.click();
+  const handleTakePhoto = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    // ตั้งค่าขนาด canvas ให้เท่ากับ video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // วาดภาพจาก video ลงบน canvas
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // แปลง canvas เป็น blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      
+      // ปิดกล้อง
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        setCameraStream(null);
+      }
+      setShowLiveCamera(false);
+      setIsAnalyzing(true);
+      
+      try {
+        // สร้าง File object จาก blob
+        const file = new File([blob], `food_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const previewUrl = URL.createObjectURL(blob);
+
+        console.log("กำลังวิเคราะห์รูปภาพ...");
+        const foodData = await analyzeFoodImage(file);
+        console.log("✅ ผลการวิเคราะห์:", foodData);
+
+        setPendingFoodData(foodData);
+        setPendingImageFile(file);
+        setPendingImagePreview(previewUrl);
+        setShowConfirmModal(true);
+      } catch (error) {
+        console.error("❌ เกิดข้อผิดพลาด:", error);
+        alert("ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองใหม่");
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }, 'image/jpeg', 0.9);
+  };
+
+  const handleCloseLiveCamera = () => {
+    // ปิดกล้อง
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setShowLiveCamera(false);
   };
 
   const handleGallerySelect = async () => {
+    setShowCameraModal(false);
+    
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    // ไม่ใส่ capture attribute เพื่อให้เลือกจากไฟล์ได้
     input.multiple = false;
 
     input.onchange = async (e) => {
       const file = e.target.files?.[0];
       if (file) {
-        setShowCameraModal(false);
         setIsAnalyzing(true);
 
         try {
@@ -1034,6 +1074,65 @@ const MainDashboard = () => {
 
       {/* Bottom Navigation */}
       <BottomNav onCameraClick={handleOpenCamera} />
+
+      {/* Live Camera Modal */}
+      {showLiveCamera && (
+        <div className="fixed inset-0 bg-black z-[100] flex flex-col">
+          {/* Video Preview */}
+          <div className="flex-1 relative overflow-hidden">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Canvas สำหรับจับภาพ (ซ่อนไว้) */}
+            <canvas ref={canvasRef} className="hidden" />
+            
+            {/* Overlay Grid */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="w-full h-full border-2 border-white/30 m-4" style={{ 
+                boxShadow: '0 0 0 9999px rgba(0,0,0,0.3)' 
+              }} />
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="bg-black/90 backdrop-blur-md p-6 pb-8 flex items-center justify-between">
+            {/* ปุ่มปิด */}
+            <button
+              onClick={handleCloseLiveCamera}
+              className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition-all flex items-center justify-center"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* ปุ่มถ่ายรูป */}
+            <button
+              onClick={handleTakePhoto}
+              className="w-20 h-20 rounded-full bg-white hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center shadow-lg border-4 border-white/50"
+            >
+              <div className="w-16 h-16 rounded-full bg-white border-2 border-gray-300" />
+            </button>
+
+            {/* ปุ่มสลับกล้อง (placeholder) */}
+            <button
+              onClick={() => {
+                // TODO: สลับกล้องหน้า-หลัง
+              }}
+              className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition-all flex items-center justify-center"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Camera Modal */}
       {showCameraModal && (
