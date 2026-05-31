@@ -663,26 +663,40 @@ const MainDashboard = () => {
   };
 
   const handleCameraCapture = async () => {
+    // ขออนุญาตใช้กล้องก่อน
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      // ปิด stream ทันทีหลังได้รับอนุญาต
+      stream.getTracks().forEach(track => track.stop());
+    } catch (error) {
+      console.warn("ไม่สามารถเข้าถึงกล้องได้:", error);
+      alert("กรุณาอนุญาตการใช้งานกล้องในการตั้งค่าเบราว์เซอร์");
+      return;
+    }
+
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
     input.capture = "environment"; // ใช้กล้องหลัง
+    
+    // เพิ่ม attributes เพื่อบังคับให้ใช้กล้อง
+    input.setAttribute("capture", "environment");
 
     input.onchange = async (e) => {
-      const file = e.target.files[0];
+      const file = e.target.files?.[0];
       if (file) {
         setShowCameraModal(false);
         setIsAnalyzing(true);
 
         try {
-          // สร้าง preview URL
           const previewUrl = URL.createObjectURL(file);
 
           console.log("กำลังวิเคราะห์รูปภาพ...");
           const foodData = await analyzeFoodImage(file);
           console.log("✅ ผลการวิเคราะห์:", foodData);
 
-          // แสดง modal ให้ user ตรวจสอบข้อมูล
           setPendingFoodData(foodData);
           setPendingImageFile(file);
           setPendingImagePreview(previewUrl);
@@ -703,23 +717,22 @@ const MainDashboard = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    // ไม่ใส่ capture เพื่อให้เลือกจากแกลเลอรี่ได้
+    // ไม่ใส่ capture attribute เพื่อให้เลือกจากไฟล์ได้
+    input.multiple = false;
 
     input.onchange = async (e) => {
-      const file = e.target.files[0];
+      const file = e.target.files?.[0];
       if (file) {
         setShowCameraModal(false);
         setIsAnalyzing(true);
 
         try {
-          // สร้าง preview URL
           const previewUrl = URL.createObjectURL(file);
 
           console.log("กำลังวิเคราะห์รูปภาพ...");
           const foodData = await analyzeFoodImage(file);
           console.log("✅ ผลการวิเคราะห์:", foodData);
 
-          // แสดง modal ให้ user ตรวจสอบข้อมูล
           setPendingFoodData(foodData);
           setPendingImageFile(file);
           setPendingImagePreview(previewUrl);
@@ -1034,9 +1047,12 @@ const MainDashboard = () => {
           >
             <div className="p-4">
               <div className="w-12 h-1 bg-[#e5e5ea] rounded-full mx-auto mb-4"></div>
-              <h3 className="text-[20px] font-semibold text-black text-center mb-4">
+              <h3 className="text-[20px] font-semibold text-black text-center mb-2">
                 เพิ่มรูปอาหาร
               </h3>
+              <p className="text-[13px] text-[#8e8e93] text-center mb-4">
+                เลือกวิธีการเพิ่มรูปภาพอาหาร
+              </p>
 
               <div className="space-y-2">
                 <button
@@ -1091,6 +1107,15 @@ const MainDashboard = () => {
                 >
                   ยกเลิก
                 </button>
+              </div>
+
+              {/* คำแนะนำ */}
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-[12px]">
+                <p className="text-[12px] text-blue-800 leading-relaxed">
+                  <span className="font-bold">💡 หมายเหตุ:</span> หากปุ่ม "เลือกจากแกลเลอรี่" เปิด Google Photos 
+                  กรุณาเลือก "Files" หรือ "เครื่องของฉัน" จากเมนูด้านบน 
+                  หรือตั้งค่าแอปเปิดไฟล์เริ่มต้นในการตั้งค่ามือถือของคุณ
+                </p>
               </div>
             </div>
           </div>
