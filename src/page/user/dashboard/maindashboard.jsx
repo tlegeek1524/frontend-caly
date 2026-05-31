@@ -429,6 +429,19 @@ const MainDashboard = () => {
     checkPDPA();
   }, [user?.id]);
 
+  // ล็อคการเลื่อนหน้าเมื่อ PDPA popup เปิด
+  useEffect(() => {
+    if (showPDPA) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showPDPA]);
+
   const handleAcceptPDPA = async () => {
     if (!user?.id) return;
 
@@ -653,8 +666,7 @@ const MainDashboard = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    // ใช้ capture="environment" สำหรับกล้องหลัง (ทำงานได้ดีกว่าในทุกอุปกรณ์)
-    input.setAttribute("capture", "environment");
+    input.capture = "environment"; // ใช้กล้องหลัง
 
     input.onchange = async (e) => {
       const file = e.target.files[0];
@@ -691,6 +703,7 @@ const MainDashboard = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
+    // ไม่ใส่ capture เพื่อให้เลือกจากแกลเลอรี่ได้
 
     input.onchange = async (e) => {
       const file = e.target.files[0];
@@ -801,7 +814,21 @@ const MainDashboard = () => {
       URL.revokeObjectURL(pendingImagePreview);
       setPendingImagePreview(null);
     }
+    document.body.style.overflow = 'unset';
   };
+
+  // ล็อคการเลื่อนหน้าเมื่อ popup เปิด
+  useEffect(() => {
+    if (showConfirmModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showConfirmModal]);
 
   const getProgressColor = () => {
     if (caloriePercentage < 70) return "from-green-400 to-green-500";
@@ -826,28 +853,28 @@ const MainDashboard = () => {
       }}
     >
       {/* Navbar */}
-      <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-3 sm:px-4 py-4 sm:py-6 shadow-sm">
+      <div className="bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-6 shadow-sm">
         <div className="max-w-md mx-auto flex justify-between items-center">
-          <h1 className="text-[24px] sm:text-[28px] font-bold text-white tracking-tight">
+          <h1 className="text-[28px] font-bold text-white tracking-tight">
             Calories Daily
           </h1>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-3 sm:space-y-4">
+      <div className="max-w-md mx-auto px-4 py-6 space-y-4">
         {/* Profile Card */}
-        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard">
-          <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard">
+          <div className="flex items-center gap-3">
             <img
               src={mockUser.profilePic}
               alt="profile"
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-green-400"
+              className="w-14 h-14 rounded-full border-2 border-green-400"
             />
             <div>
-              <h3 className="text-[15px] sm:text-[17px] font-semibold text-black">
+              <h3 className="text-[17px] font-semibold text-black">
                 {mockUser.name}
               </h3>
-              <p className="text-[12px] sm:text-[13px] text-[#8e8e93]">
+              <p className="text-[13px] text-[#8e8e93]">
                 เป้าหมาย: {userTDEE ? userTDEE.toLocaleString() : "-"} kcal/วัน
               </p>
             </div>
@@ -855,44 +882,44 @@ const MainDashboard = () => {
         </div>
 
         {/* Calorie Progress */}
-        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard animate-delay-100">
-          <div className="flex justify-between items-center mb-2.5 sm:mb-3">
-            <h5 className="text-[15px] sm:text-[17px] font-semibold text-black">
+        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard animate-delay-100">
+          <div className="flex justify-between items-center mb-3">
+            <h5 className="text-[17px] font-semibold text-black">
               พลังงานวันนี้
             </h5>
             <span
-              className={`${getProgressBadgeColor()} text-white text-[12px] sm:text-[13px] font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full transition-all duration-300`}
+              className={`${getProgressBadgeColor()} text-white text-[13px] font-semibold px-3 py-1 rounded-full transition-all duration-300`}
             >
               {Math.round(animatedPercentage)}%
             </span>
           </div>
 
-          <div className="relative h-7 sm:h-8 bg-[#e5e5ea] rounded-full overflow-hidden mb-2.5 sm:mb-3">
+          <div className="relative h-8 bg-[#e5e5ea] rounded-full overflow-hidden mb-3">
             <div
               className={`absolute inset-0 bg-gradient-to-r ${getProgressColor()} transition-all duration-300 ease-out`}
               style={{ width: `${Math.min(animatedPercentage, 100)}%` }}
             />
-            <div className="absolute inset-0 flex items-center justify-center text-[#8e8e93] text-[11px] sm:text-[13px] font-semibold opacity-50">
+            <div className="absolute inset-0 flex items-center justify-center text-[#8e8e93] text-[13px] font-semibold opacity-50">
               {animatedCal} / {userTDEE || "-"}
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center">
+          <div className="grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-[18px] sm:text-[20px] font-bold text-red-500 transition-all duration-300">
+              <div className="text-[20px] font-bold text-red-500 transition-all duration-300">
                 {animatedCal.toLocaleString()}
               </div>
-              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">บริโภคแล้ว</div>
+              <div className="text-[11px] text-[#8e8e93]">บริโภคแล้ว</div>
             </div>
             <div>
-              <div className="text-[18px] sm:text-[20px] font-bold text-black">
+              <div className="text-[20px] font-bold text-black">
                 {userTDEE ? userTDEE.toLocaleString() : "-"}
               </div>
-              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">เป้าหมาย</div>
+              <div className="text-[11px] text-[#8e8e93]">เป้าหมาย</div>
             </div>
             <div>
               <div
-                className={`text-[18px] sm:text-[20px] font-bold transition-all duration-300 ${remainingCalories >= 0 ? "text-green-500" : "text-red-500"}`}
+                className={`text-[20px] font-bold transition-all duration-300 ${remainingCalories >= 0 ? "text-green-500" : "text-red-500"}`}
               >
                 {userTDEE
                   ? remainingCalories >= 0
@@ -900,100 +927,94 @@ const MainDashboard = () => {
                     : `+${Math.abs(mockUser.tdee - animatedCal).toLocaleString()}`
                   : "-"}
               </div>
-              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">
+              <div className="text-[11px] text-[#8e8e93]">
                 {remainingCalories >= 0 ? "เหลือ" : "เกิน"}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Date Filter */}
-        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard animate-delay-200">
-          <label htmlFor="dateSelect" className="block text-[12px] sm:text-[13px] text-black mb-1.5 sm:mb-2">
-            เลือกวันที่
-          </label>
-          <div className="flex gap-2">
-            <input
-              id="dateSelect"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-2.5 sm:px-3 py-2 text-[14px] sm:text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200 cursor-pointer"
-              style={{
-                WebkitAppearance: 'none',
-                MozAppearance: 'none',
-                appearance: 'none'
-              }}
-            />
-            <button
-              onClick={handleViewDate}
-              disabled={loading}
-              className="px-3 sm:px-4 py-2 text-[14px] sm:text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "กำลังโหลด..." : "ดู"}
-            </button>
-          </div>
-        </div>
-
         {/* Nutrition Summary with Chart */}
-        <div className="bg-white rounded-[10px] sm:rounded-[12px] p-3 sm:p-4 shadow-sm animate-slideUpCard animate-delay-300">
-          <div className="text-center mb-3 sm:mb-4">
-            <p className="text-[12px] sm:text-[13px] text-[#8e8e93]">สรุปโภชนาการวันนี้</p>
+        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard animate-delay-200">
+          <div className="text-center mb-4">
+            <p className="text-[13px] text-[#8e8e93]">สรุปโภชนาการวันนี้</p>
           </div>
 
-          <div className="flex items-center justify-center mb-3 sm:mb-4 relative">
-            <div className="w-40 h-40 sm:w-48 sm:h-48">
+          <div className="flex items-center justify-center mb-4 relative">
+            <div className="w-48 h-48">
               <Doughnut data={chartData} options={chartOptions} />
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="text-[20px] sm:text-[24px] font-bold text-black">{Math.round(totalCal)}</div>
-              <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">/ {userTDEE || '-'} kcal</div>
+              <div className="text-[24px] font-bold text-black">{Math.round(totalCal)}</div>
+              <div className="text-[11px] text-[#8e8e93]">/ {userTDEE || '-'} kcal</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-500"></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
               <div>
-                <div className="text-[14px] sm:text-[15px] font-semibold text-black">
+                <div className="text-[15px] font-semibold text-black">
                   {totalProtein}g
                 </div>
-                <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">
+                <div className="text-[11px] text-[#8e8e93]">
                   โปรตีน ({proteinCal} kcal)
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-orange-500"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-orange-500"></div>
               <div>
-                <div className="text-[14px] sm:text-[15px] font-semibold text-black">
+                <div className="text-[15px] font-semibold text-black">
                   {totalCarb}g
                 </div>
-                <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">
+                <div className="text-[11px] text-[#8e8e93]">
                   คาร์บ ({carbCal} kcal)
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
               <div>
-                <div className="text-[14px] sm:text-[15px] font-semibold text-black">
+                <div className="text-[15px] font-semibold text-black">
                   {totalFat}g
                 </div>
-                <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">
+                <div className="text-[11px] text-[#8e8e93]">
                   ไขมัน ({fatCal} kcal)
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#e5e5ea]"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#e5e5ea]"></div>
               <div>
-                <div className="text-[14px] sm:text-[15px] font-semibold text-black">
+                <div className="text-[15px] font-semibold text-black">
                   {Math.round(remainingTDEE)}
                 </div>
-                <div className="text-[10px] sm:text-[11px] text-[#8e8e93]">เหลือ (kcal)</div>
+                <div className="text-[11px] text-[#8e8e93]">เหลือ (kcal)</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Date Filter */}
+        <div className="bg-white rounded-[12px] p-4 shadow-sm animate-slideUpCard animate-delay-300">
+          <label className="block text-[13px] text-black mb-2">
+            เลือกวันที่
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="flex-1 px-3 py-2 text-[15px] bg-[#f2f2f7] rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
+            />
+            <button
+              onClick={handleViewDate}
+              disabled={loading}
+              className="px-4 py-2 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "กำลังโหลด..." : "ดู"}
+            </button>
           </div>
         </div>
       </div>
@@ -1004,26 +1025,26 @@ const MainDashboard = () => {
       {/* Camera Modal */}
       {showCameraModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-fadeIn px-3 sm:px-0"
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-fadeIn"
           onClick={() => setShowCameraModal(false)}
         >
           <div
-            className="bg-white rounded-t-[16px] sm:rounded-t-[20px] w-full max-w-md pb-safe animate-slideUp"
+            className="bg-white rounded-t-[20px] w-full max-w-md pb-safe animate-slideUp"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-3 sm:p-4">
-              <div className="w-10 sm:w-12 h-1 bg-[#e5e5ea] rounded-full mx-auto mb-3 sm:mb-4"></div>
-              <h3 className="text-[18px] sm:text-[20px] font-semibold text-black text-center mb-3 sm:mb-4">
+            <div className="p-4">
+              <div className="w-12 h-1 bg-[#e5e5ea] rounded-full mx-auto mb-4"></div>
+              <h3 className="text-[20px] font-semibold text-black text-center mb-4">
                 เพิ่มรูปอาหาร
               </h3>
 
               <div className="space-y-2">
                 <button
                   onClick={handleCameraCapture}
-                  className="w-full py-3 sm:py-4 text-[15px] sm:text-[17px] font-semibold text-black bg-[#f2f2f7] rounded-[10px] sm:rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
+                  className="w-full py-4 text-[17px] font-semibold text-black bg-[#f2f2f7] rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    className="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1046,10 +1067,10 @@ const MainDashboard = () => {
 
                 <button
                   onClick={handleGallerySelect}
-                  className="w-full py-3 sm:py-4 text-[15px] sm:text-[17px] font-semibold text-black bg-[#f2f2f7] rounded-[10px] sm:rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
+                  className="w-full py-4 text-[17px] font-semibold text-black bg-[#f2f2f7] rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    className="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1066,7 +1087,7 @@ const MainDashboard = () => {
 
                 <button
                   onClick={() => setShowCameraModal(false)}
-                  className="w-full py-3 sm:py-4 text-[15px] sm:text-[17px] font-semibold text-red-500 bg-white rounded-[10px] sm:rounded-[12px] hover:bg-[#f2f2f7] active:scale-[0.98] transition-all duration-200"
+                  className="w-full py-4 text-[17px] font-semibold text-red-500 bg-white rounded-[12px] hover:bg-[#f2f2f7] active:scale-[0.98] transition-all duration-200"
                 >
                   ยกเลิก
                 </button>
@@ -1148,127 +1169,134 @@ const MainDashboard = () => {
       {/* Confirm Food Data Modal */}
       {showConfirmModal && pendingFoodData && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn p-3 sm:p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn p-4 overflow-y-auto"
           onClick={handleCancelSave}
         >
           <div
-            className="bg-white rounded-[16px] sm:rounded-[20px] p-4 sm:p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto animate-slideUp"
+            className="bg-white rounded-[20px] max-w-sm w-full shadow-2xl animate-slideUp my-auto max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-[18px] sm:text-[20px] font-semibold text-black text-center mb-3 sm:mb-4">
-              ตรวจสอบข้อมูล
-            </h3>
+            {/* Header - Fixed */}
+            <div className="px-6 pt-6 pb-4 flex-shrink-0">
+              <h3 className="text-[20px] font-semibold text-black text-center">
+                ตรวจสอบข้อมูล
+              </h3>
+            </div>
 
-            {/* แสดงรูปภาพ */}
-            {pendingImagePreview && (
-              <div className="mb-3 sm:mb-4">
-                <img
-                  src={pendingImagePreview}
-                  alt="Food preview"
-                  className="w-full h-40 sm:h-48 object-cover rounded-[10px] sm:rounded-[12px]"
-                />
-              </div>
-            )}
-
-            <div className="space-y-2.5 sm:space-y-3 mb-4 sm:mb-6">
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-[14px] sm:text-[15px] text-[#8e8e93] shrink-0">เมนู:</span>
-                <input
-                  type="text"
-                  value={pendingFoodData.menu}
-                  onChange={(e) =>
-                    setPendingFoodData({
-                      ...pendingFoodData,
-                      menu: e.target.value,
-                    })
-                  }
-                  className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none flex-1 min-w-0"
-                />
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">แคลอรี่:</span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    value={pendingFoodData.cal}
-                    onChange={(e) =>
-                      setPendingFoodData({
-                        ...pendingFoodData,
-                        cal: Number(e.target.value),
-                      })
-                    }
-                    className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-20 sm:w-24"
+            {/* Content - Scrollable */}
+            <div className="px-6 overflow-y-auto flex-1">
+              {/* แสดงรูปภาพ */}
+              {pendingImagePreview && (
+                <div className="mb-4">
+                  <img
+                    src={pendingImagePreview}
+                    alt="Food preview"
+                    className="w-full h-48 object-cover rounded-[12px]"
                   />
-                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93]">kcal</span>
                 </div>
-              </div>
+              )}
 
-              <div className="flex justify-between items-center">
-                <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">โปรตีน:</span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    value={pendingFoodData.protein}
+              <div className="space-y-3 mb-6">
+                <div className="flex flex-col gap-2">
+                  <span className="text-[15px] text-[#8e8e93]">เมนู:</span>
+                  <textarea
+                    value={pendingFoodData.menu}
                     onChange={(e) =>
                       setPendingFoodData({
                         ...pendingFoodData,
-                        protein: Number(e.target.value),
+                        menu: e.target.value,
                       })
                     }
-                    className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-20 sm:w-24"
+                    className="text-[15px] font-semibold text-black bg-[#f2f2f7] px-3 py-2 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-full resize-none"
+                    rows="2"
                   />
-                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93]">g</span>
                 </div>
-              </div>
 
-              <div className="flex justify-between items-center">
-                <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">คาร์บ:</span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    value={pendingFoodData.carb}
-                    onChange={(e) =>
-                      setPendingFoodData({
-                        ...pendingFoodData,
-                        carb: Number(e.target.value),
-                      })
-                    }
-                    className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-20 sm:w-24"
-                  />
-                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93]">g</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-[15px] text-[#8e8e93]">แคลอรี่:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={pendingFoodData.cal}
+                      onChange={(e) =>
+                        setPendingFoodData({
+                          ...pendingFoodData,
+                          cal: Number(e.target.value),
+                        })
+                      }
+                      className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                    />
+                    <span className="text-[13px] text-[#8e8e93]">kcal</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex justify-between items-center">
-                <span className="text-[14px] sm:text-[15px] text-[#8e8e93]">ไขมัน:</span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    value={pendingFoodData.fat}
-                    onChange={(e) =>
-                      setPendingFoodData({
-                        ...pendingFoodData,
-                        fat: Number(e.target.value),
-                      })
-                    }
-                    className="text-[14px] sm:text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-2.5 sm:px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-20 sm:w-24"
-                  />
-                  <span className="text-[12px] sm:text-[13px] text-[#8e8e93]">g</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-[15px] text-[#8e8e93]">โปรตีน:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={pendingFoodData.protein}
+                      onChange={(e) =>
+                        setPendingFoodData({
+                          ...pendingFoodData,
+                          protein: Number(e.target.value),
+                        })
+                      }
+                      className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                    />
+                    <span className="text-[13px] text-[#8e8e93]">g</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-[15px] text-[#8e8e93]">คาร์บ:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={pendingFoodData.carb}
+                      onChange={(e) =>
+                        setPendingFoodData({
+                          ...pendingFoodData,
+                          carb: Number(e.target.value),
+                        })
+                      }
+                      className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                    />
+                    <span className="text-[13px] text-[#8e8e93]">g</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-[15px] text-[#8e8e93]">ไขมัน:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={pendingFoodData.fat}
+                      onChange={(e) =>
+                        setPendingFoodData({
+                          ...pendingFoodData,
+                          fat: Number(e.target.value),
+                        })
+                      }
+                      className="text-[15px] font-semibold text-black text-right bg-[#f2f2f7] px-3 py-1 rounded-lg border-0 focus:bg-[#e5e5ea] focus:outline-none w-24"
+                    />
+                    <span className="text-[13px] text-[#8e8e93]">g</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-2">
+            {/* Actions - Fixed */}
+            <div className="px-6 pb-6 flex gap-2 flex-shrink-0 border-t border-[#e5e5ea] pt-4">
               <button
                 onClick={handleCancelSave}
-                className="flex-1 py-2.5 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-red-500 bg-[#f2f2f7] rounded-[10px] sm:rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200"
+                className="flex-1 py-3 text-[15px] font-semibold text-red-500 bg-[#f2f2f7] rounded-[12px] hover:bg-[#e5e5ea] active:scale-[0.98] transition-all duration-200"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleConfirmSave}
-                className="flex-1 py-2.5 sm:py-3 text-[14px] sm:text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[10px] sm:rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
+                className="flex-1 py-3 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
               >
                 บันทึก
               </button>
@@ -1279,66 +1307,70 @@ const MainDashboard = () => {
 
       {/* PDPA Consent Modal for GPS */}
       {showPDPA && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[999] animate-fadeIn p-4">
-          <div className="bg-white rounded-[24px] max-w-sm w-full p-6 shadow-2xl border border-slate-100/50 flex flex-col gap-5 text-center">
-            {/* Pulsing GPS Premium Icon Container */}
-            <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-emerald-400 to-green-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-400/20 relative animate-pulse">
-              <svg
-                className="w-8 h-8"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[999] animate-fadeIn p-4 overflow-y-auto">
+          <div className="bg-white rounded-[24px] max-w-sm w-full shadow-2xl border border-slate-100/50 my-auto max-h-[90vh] flex flex-col">
+            {/* Content - Scrollable */}
+            <div className="p-6 flex flex-col gap-5 text-center overflow-y-auto">
+              {/* Pulsing GPS Premium Icon Container */}
+              <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-emerald-400 to-green-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-400/20 relative animate-pulse flex-shrink-0">
+                <svg
+                  className="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <h3 className="text-[20px] font-bold text-slate-800 tracking-tight">
-                นโยบายความเป็นส่วนตัว (PDPA)
-              </h3>
-              <p className="text-[13px] text-slate-500 leading-relaxed">
-                ระบบแอปพลิเคชัน Calories Daily
-                มีความจำเป็นต้องเข้าถึงข้อมูลพิกัดตำแหน่งที่ตั้ง (GPS) ของท่าน
-                เพื่อความแม่นยำในการให้บริการและวิเคราะห์ข้อมูลสถานที่สำหรับการใช้งานฟีเจอร์รายงานตัว
-              </p>
-            </div>
-
-            <div className="bg-emerald-50/50 border border-emerald-500/10 rounded-xl p-3.5 flex gap-2.5 text-left">
-              <svg
-                className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
-              <div className="flex flex-col gap-0.5 text-xs text-emerald-800 leading-relaxed font-semibold">
-                <span>การคุ้มครองข้อมูลส่วนบุคคล:</span>
-                <p className="font-normal text-emerald-700">
-                  พิกัด GPS
-                  ของท่านจะถูกนำไปใช้ในเซิร์ฟเวอร์ระบบรายงานตัวเท่านั้น
-                  และจะไม่มีการนำไปเผยแพร่หรือใช้งานในวัตถุประสงค์อื่นนอกเหนือจากที่กำหนด
+              <div className="flex flex-col gap-2">
+                <h3 className="text-[20px] font-bold text-slate-800 tracking-tight">
+                  นโยบายความเป็นส่วนตัว (PDPA)
+                </h3>
+                <p className="text-[13px] text-slate-500 leading-relaxed">
+                  ระบบแอปพลิเคชัน Calories Daily
+                  มีความจำเป็นต้องเข้าถึงข้อมูลพิกัดตำแหน่งที่ตั้ง (GPS) ของท่าน
+                  เพื่อความแม่นยำในการให้บริการและวิเคราะห์ข้อมูลสถานที่สำหรับการใช้งานฟีเจอร์รายงานตัว
                 </p>
+              </div>
+
+              <div className="bg-emerald-50/50 border border-emerald-500/10 rounded-xl p-3.5 flex gap-2.5 text-left">
+                <svg
+                  className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                </svg>
+                <div className="flex flex-col gap-0.5 text-xs text-emerald-800 leading-relaxed font-semibold">
+                  <span>การคุ้มครองข้อมูลส่วนบุคคล:</span>
+                  <p className="font-normal text-emerald-700">
+                    พิกัด GPS
+                    ของท่านจะถูกนำไปใช้ในเซิร์ฟเวอร์ระบบรายงานตัวเท่านั้น
+                    และจะไม่มีการนำไปเผยแพร่หรือใช้งานในวัตถุประสงค์อื่นนอกเหนือจากที่กำหนด
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2.5 mt-2">
+            {/* Actions - Fixed */}
+            <div className="flex flex-col gap-2.5 p-6 pt-0 flex-shrink-0 border-t border-slate-100">
               <button
                 onClick={handleAcceptPDPA}
                 className="w-full py-3.5 text-[15px] font-bold text-white bg-gradient-to-r from-emerald-400 to-green-500 rounded-[14px] hover:brightness-105 active:scale-[0.98] transition-all duration-200 shadow-md shadow-emerald-500/15"
