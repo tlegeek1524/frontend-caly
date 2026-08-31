@@ -2,7 +2,7 @@
  * Service สำหรับจัดการ API รายการอาหาร (Menu)
  */
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_BASE_URL = '';
 
 /**
  * บันทึกข้อมูลเมนูอาหารใหม่ (POST /api/v1/menu)

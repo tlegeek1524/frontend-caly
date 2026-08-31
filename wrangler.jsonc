@@ -1,9 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "frontend-caly",
+  "main": "worker.js",
   "compatibility_date": "2026-08-28",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    "BACKEND_API_URL": "https://backendcaly-production.up.railway.app"
   }
 }

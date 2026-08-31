@@ -65,7 +65,7 @@ export const calculateTDEEValue = ({ bmr, activityLevel, goal }) => {
   return Math.round(tdee);
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_BASE_URL = '';
 
 /**
  * ดึงข้อมูลผู้ใช้จาก Backend API
