@@ -51,6 +51,7 @@ export const createMenuService = async (payload) => {
     }
 
     const result = await response.json().catch(() => ({}));
+    invalidateTodayMenuCache();
     return { success: true, data: result };
   } catch (error) {
     console.error('[MenuService] createMenuService exception:', error);
@@ -58,16 +59,59 @@ export const createMenuService = async (payload) => {
   }
 };
 
+// In-memory Cache สำหรับข้อมูลวันปัจจุบัน
+let todayMenusCache = {
+  lineUid: null,
+  date: null,
+  data: null,
+  timestamp: 0
+};
+
+let todayMenusAfterCache = {
+  lineUid: null,
+  date: null,
+  data: null,
+  timestamp: 0
+};
+
+// ฟังก์ชัน helper เพื่อหา YYYY-MM-DD ของวันปัจจุบัน (Local Time)
+const getTodayDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * ล้าง Cache ข้อมูลวันปัจจุบัน (ใช้เมื่อมีการเพิ่ม/แก้ไขข้อมูล)
+ */
+export const invalidateTodayMenuCache = () => {
+  todayMenusCache = { lineUid: null, date: null, data: null, timestamp: 0 };
+  todayMenusAfterCache = { lineUid: null, date: null, data: null, timestamp: 0 };
+};
+
 /**
  * ดึงรายการอาหารตาม line_uid และวันที่เลือก (GET /api/v1/menus?line_uid=...)
+ * ถ้าเป็นวันปัจจุบันและมี Cache อยู่แล้ว จะดึงจาก Cache ทันทีโดยไม่ยิง API ซ้ำ
  * @param {string} lineUid - LINE User ID
  * @param {string} [selectedDate] - วันที่ในรูปแบบ YYYY-MM-DD (ถ้ามี)
+ * @param {boolean} [forceRefresh=false] - บังคับยิง API ใหม่เพื่ออัปเดต Cache
  * @returns {Promise<{success: boolean, data?: Array, error?: any}>}
  */
-export const getMenusService = async (lineUid, selectedDate = null) => {
+export const getMenusService = async (lineUid, selectedDate = null, forceRefresh = false) => {
   try {
     if (!lineUid) {
       return { success: false, error: 'line_uid is required', data: [] };
+    }
+
+    const todayStr = getTodayDateString();
+    const isToday = !selectedDate || selectedDate === todayStr;
+
+    // ถ้าเป็นวันปัจจุบัน และมี Cache อยู่แล้ว และไม่ได้สั่ง forceRefresh -> คืนค่าจาก Cache ทันที
+    if (isToday && !forceRefresh && todayMenusCache.data && todayMenusCache.lineUid === lineUid && todayMenusCache.date === todayStr) {
+      console.log('[MenuService] Returning today menus from memory cache (No API call)');
+      return { success: true, data: todayMenusCache.data, fromCache: true };
     }
 
     const response = await fetch(`/api/v1/menus?line_uid=${encodeURIComponent(lineUid)}`, {
@@ -123,6 +167,16 @@ export const getMenusService = async (lineUid, selectedDate = null) => {
         }
       })
       .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // บันทึกลง Cache เฉพาะถ้าเป็นการดึงของวันปัจจุบัน
+    if (isToday) {
+      todayMenusCache = {
+        lineUid,
+        date: todayStr,
+        data: formattedRecords,
+        timestamp: Date.now()
+      };
+    }
 
     return { success: true, data: formattedRecords };
   } catch (error) {
@@ -180,6 +234,7 @@ export const createMenuAfterService = async (payload) => {
     }
 
     const result = await response.json().catch(() => ({}));
+    invalidateTodayMenuCache();
     return { success: true, data: result };
   } catch (error) {
     console.error('[MenuService] createMenuAfterService exception:', error);
@@ -189,13 +244,25 @@ export const createMenuAfterService = async (payload) => {
 
 /**
  * ดึงข้อมูลรายการอาหารหลังกิน (GET /api/v1/menu/after?line_uid=...)
+ * ถ้าเป็นวันปัจจุบันและมี Cache อยู่แล้ว จะดึงจาก Cache ทันทีโดยไม่ยิง API ซ้ำ
  * @param {string} lineUid - LINE User ID
+ * @param {string} [selectedDate] - วันที่ในรูปแบบ YYYY-MM-DD (ถ้ามี เพื่อกรองเฉพาะวันนั้น)
+ * @param {boolean} [forceRefresh=false] - บังคับยิง API ใหม่เพื่ออัปเดต Cache
  * @returns {Promise<{success: boolean, data?: Array, error?: any}>}
  */
-export const getMenusAfterService = async (lineUid) => {
+export const getMenusAfterService = async (lineUid, selectedDate = null, forceRefresh = false) => {
   try {
     if (!lineUid) {
       return { success: false, error: 'line_uid is required', data: [] };
+    }
+
+    const todayStr = getTodayDateString();
+    const isToday = !selectedDate || selectedDate === todayStr;
+
+    // ถ้าเป็นวันปัจจุบัน และมี Cache อยู่แล้ว และไม่ได้สั่ง forceRefresh -> คืนค่าจาก Cache ทันที
+    if (isToday && !forceRefresh && todayMenusAfterCache.data && todayMenusAfterCache.lineUid === lineUid && todayMenusAfterCache.date === todayStr) {
+      console.log('[MenuService] Returning today menus_after from memory cache (No API call)');
+      return { success: true, data: todayMenusAfterCache.data, fromCache: true };
     }
 
     const response = await fetch(`/api/v1/menu/after?line_uid=${encodeURIComponent(lineUid)}`, {
@@ -214,23 +281,47 @@ export const getMenusAfterService = async (lineUid) => {
     const resJson = await response.json().catch(() => ({}));
     const rawList = Array.isArray(resJson) ? resJson : (resJson.data || []);
 
-    const formattedList = rawList.map((item) => ({
-      id: item.id,
-      food_menu_id: item.food_menu_id,
-      line_uid: item.line_uid,
-      cal: Number(item.cal) || 0,
-      protein: Number(item.protein ?? item.protine) || 0,
-      carb: Number(item.carb) || 0,
-      fat: Number(item.fat) || 0,
-      eat_percent: item.eat_percent !== undefined ? Number(item.eat_percent) : 100,
-      eatPercent: item.eat_percent !== undefined ? Number(item.eat_percent) : 100,
-      image: item.image_url || item.image || null,
-      image_url: item.image_url || item.image || null,
-      mash: item.mash || 'lunch',
-      runnum: item.runnum || null,
-      date: item.date || item.created_at,
-      created_at: item.created_at
-    }));
+    const formattedList = rawList
+      .map((item) => ({
+        id: item.id,
+        food_menu_id: item.food_menu_id,
+        line_uid: item.line_uid,
+        cal: Number(item.cal) || 0,
+        protein: Number(item.protein ?? item.protine) || 0,
+        carb: Number(item.carb) || 0,
+        fat: Number(item.fat) || 0,
+        eat_percent: item.eat_percent !== undefined ? Number(item.eat_percent) : 100,
+        eatPercent: item.eat_percent !== undefined ? Number(item.eat_percent) : 100,
+        image: item.image_url || item.image || null,
+        image_url: item.image_url || item.image || null,
+        mash: item.mash || 'lunch',
+        runnum: item.runnum || null,
+        date: item.date || item.created_at,
+        created_at: item.created_at
+      }))
+      .filter((record) => {
+        if (!selectedDate) return true;
+        try {
+          const recordDateTime = new Date(record.date);
+          const year = recordDateTime.getFullYear();
+          const month = String(recordDateTime.getMonth() + 1).padStart(2, '0');
+          const day = String(recordDateTime.getDate()).padStart(2, '0');
+          const localDateStr = `${year}-${month}-${day}`;
+          return localDateStr === selectedDate;
+        } catch {
+          return true;
+        }
+      });
+
+    // บันทึกลง Cache เฉพาะถ้าเป็นการดึงของวันปัจจุบัน
+    if (isToday) {
+      todayMenusAfterCache = {
+        lineUid,
+        date: todayStr,
+        data: formattedList,
+        timestamp: Date.now()
+      };
+    }
 
     return { success: true, data: formattedList };
   } catch (error) {

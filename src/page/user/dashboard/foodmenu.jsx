@@ -283,6 +283,7 @@ const FoodMenu = () => {
   const [foodRecords, setFoodRecords] = useState([]);
   const [foodAfterRecords, setFoodAfterRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isViewingDate, setIsViewingDate] = useState(false);
   const [showNoDataModal, setShowNoDataModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingFoodData, setPendingFoodData] = useState(null);
@@ -313,7 +314,7 @@ const FoodMenu = () => {
     }
   }, [user, navigate]);
 
-  // ดึงรายการอาหารและอาหารหลังกินจาก Backend API
+  // ดึงรายการอาหารและอาหารหลังกินจาก Backend API เฉพาะวันที่เลือก/วันปัจจุบัน
   useEffect(() => {
     if (!user || !user.id) return;
     
@@ -322,7 +323,7 @@ const FoodMenu = () => {
       try {
         const [records, afterRes] = await Promise.all([
           fetchFoodRecords(user.id, displayDate),
-          getMenusAfterService(user.id)
+          getMenusAfterService(user.id, displayDate)
         ]);
         setFoodRecords(records);
         if (afterRes.success && afterRes.data) {
@@ -342,11 +343,11 @@ const FoodMenu = () => {
   const handleViewDate = async () => {
     if (!user || !user.id) return;
     
-    setLoading(true);
+    setIsViewingDate(true);
     try {
       const [records, afterRes] = await Promise.all([
         fetchFoodRecords(user.id, selectedDate),
-        getMenusAfterService(user.id)
+        getMenusAfterService(user.id, selectedDate)
       ]);
       setFoodRecords(records);
       if (afterRes.success && afterRes.data) {
@@ -361,7 +362,7 @@ const FoodMenu = () => {
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
-      setLoading(false);
+      setIsViewingDate(false);
     }
   };
 
@@ -882,7 +883,7 @@ const FoodMenu = () => {
               disabled={loading}
               className="px-3 sm:px-4 py-2 text-[14px] sm:text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'กำลังโหลด...' : 'ดู'}
+              ดู
             </button>
           </div>
         </div>

@@ -296,6 +296,7 @@ const MainDashboard = () => {
   const [foodAfterRecords, setFoodAfterRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isViewingDate, setIsViewingDate] = useState(false);
   const [showNoDataModal, setShowNoDataModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingFoodData, setPendingFoodData] = useState(null);
@@ -353,7 +354,7 @@ const MainDashboard = () => {
     }
   }, [user, navigate]);
 
-  // ดึงข้อมูล TDEE และรายการอาหารจาก GET /api/v1/menus?line_uid=... และอาหารหลังกิน
+  // ดึงข้อมูล TDEE และรายการอาหารจาก GET /api/v1/menus?line_uid=... และอาหารหลังกิน เฉพาะวันปัจจุบัน
   useEffect(() => {
     if (!user || !user.id) return;
 
@@ -364,10 +365,10 @@ const MainDashboard = () => {
         const tdee = await fetchUserTDEE(user.id);
         setUserTDEE(tdee);
 
-        // ดึงรายการอาหารก่อนกิน และรายการหลังกิน
+        // ดึงรายการอาหารก่อนกิน และรายการหลังกิน เฉพาะวันที่เลือก/วันปัจจุบัน
         const [records, afterRes] = await Promise.all([
           fetchFoodRecords(user.id, displayDate),
-          getMenusAfterService(user.id)
+          getMenusAfterService(user.id, displayDate)
         ]);
         setFoodRecords(records);
         if (afterRes.success && afterRes.data) {
@@ -387,11 +388,11 @@ const MainDashboard = () => {
   const handleViewDate = async () => {
     if (!user || !user.id) return;
 
-    setLoading(true);
+    setIsViewingDate(true);
     try {
       const [records, afterRes] = await Promise.all([
         fetchFoodRecords(user.id, selectedDate),
-        getMenusAfterService(user.id)
+        getMenusAfterService(user.id, selectedDate)
       ]);
       setFoodRecords(records);
       if (afterRes.success && afterRes.data) {
@@ -406,7 +407,7 @@ const MainDashboard = () => {
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
-      setLoading(false);
+      setIsViewingDate(false);
     }
   };
 
@@ -927,7 +928,7 @@ const MainDashboard = () => {
               disabled={loading}
               className="px-4 py-2 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-lg hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "กำลังโหลด..." : "ดู"}
+              ดู
             </button>
           </div>
         </div>
