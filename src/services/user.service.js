@@ -65,6 +65,8 @@ export const calculateTDEEValue = ({ bmr, activityLevel, goal }) => {
   return Math.round(tdee);
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 /**
  * ดึงข้อมูลผู้ใช้จาก Backend API
  * @param {string} lineUid 
@@ -72,7 +74,7 @@ export const calculateTDEEValue = ({ bmr, activityLevel, goal }) => {
  */
 export const getUserService = async (lineUid) => {
   try {
-    const response = await fetch(`/api/v1/user/${lineUid}`);
+    const response = await fetch(`${API_BASE_URL}/api/v1/user/${lineUid}`);
     if (!response.ok) {
       return { success: false, status: response.status };
     }
@@ -91,7 +93,7 @@ export const getUserService = async (lineUid) => {
  */
 export const createUserService = async (payload) => {
   try {
-    const response = await fetch('/api/v1/user', {
+    const response = await fetch(`${API_BASE_URL}/api/v1/user`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -120,7 +122,7 @@ export const createUserService = async (payload) => {
  */
 export const updateUserService = async (lineUid, payload) => {
   try {
-    const response = await fetch(`/api/v1/user/${lineUid}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/user/${lineUid}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'

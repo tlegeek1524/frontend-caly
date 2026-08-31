@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../../../components/BottomNav/BottomNav';
 import LoadingOverlay from '../../../components/Loading/LoadingOverlay';
+import { getUserService } from '../../../services/user.service';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -24,10 +25,9 @@ const Profile = () => {
       if (!user?.id) return;
 
       try {
-        const response = await fetch(`/api/v1/user/${user.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          const record = data.data || data;
+        const userRes = await getUserService(user.id);
+        if (userRes.success && userRes.data) {
+          const record = userRes.data;
           if (record && (record.cal || record.weight || record.gender)) {
             setUserData({
               Gender: record.gender || record.Gender,
@@ -40,21 +40,6 @@ const Profile = () => {
             });
             setIsLoading(false);
             return;
-          }
-        }
-
-        // Fallback จาก Airtable ชั่วคราวถ้า Backend ยังไม่มีเส้น GET
-        const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
-        const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
-        const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
-        if (apiToken && baseId && tableId) {
-          const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-          const res = await fetch(`${url}?filterByFormula=${encodeURIComponent(`line_uid='${user.id}'`)}`, {
-            headers: { 'Authorization': `Bearer ${apiToken}` }
-          });
-          const data = await res.json();
-          if (data.records && data.records.length > 0) {
-            setUserData(data.records[0].fields);
           }
         }
       } catch (error) {

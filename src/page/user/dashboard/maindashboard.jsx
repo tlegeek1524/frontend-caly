@@ -11,32 +11,16 @@ import {
   getMenusAfterService, 
   calculateDailyNutrition 
 } from "../../../services/menu.service";
+import { getUserService } from "../../../services/user.service";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 // User Functions
 const fetchUserTDEE = async (lineUid) => {
   try {
-    const response = await fetch(`/api/v1/user/${lineUid}`);
-    if (response.ok) {
-      const data = await response.json();
-      const record = data.data || data;
-      if (record && record.cal) {
-        return parseInt(record.cal);
-      }
-    }
-
-    // Fallback จาก Airtable ชั่วคราวถ้า Backend ยังไม่มีเส้น GET
-    const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
-    const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
-    const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
-    if (apiToken && baseId && tableId) {
-      const url = `https://api.airtable.com/v0/${baseId}/${tableId}?filterByFormula=${encodeURIComponent(`line_uid='${lineUid}'`)}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${apiToken}` } });
-      const data = await res.json();
-      if (data.records && data.records.length > 0) {
-        return data.records[0].fields.Cal || 2000;
-      }
+    const userRes = await getUserService(lineUid);
+    if (userRes.success && userRes.data && userRes.data.cal) {
+      return parseInt(userRes.data.cal);
     }
     return 2000;
   } catch (error) {

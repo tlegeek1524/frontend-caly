@@ -2,6 +2,8 @@
  * Service สำหรับจัดการ API รายการอาหาร (Menu)
  */
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 /**
  * บันทึกข้อมูลเมนูอาหารใหม่ (POST /api/v1/menu)
  * @param {Object} payload
@@ -36,7 +38,7 @@ export const createMenuService = async (payload) => {
 
     console.log('[MenuService] Sending POST /api/v1/menu:', formattedPayload);
 
-    const response = await fetch('/api/v1/menu', {
+    const response = await fetch(`${API_BASE_URL}/api/v1/menu`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -114,7 +116,7 @@ export const getMenusService = async (lineUid, selectedDate = null, forceRefresh
       return { success: true, data: todayMenusCache.data, fromCache: true };
     }
 
-    const response = await fetch(`/api/v1/menus?line_uid=${encodeURIComponent(lineUid)}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/menus?line_uid=${encodeURIComponent(lineUid)}`, {
       method: 'GET',
       headers: {
         'Accept': '*/*'
@@ -219,7 +221,7 @@ export const createMenuAfterService = async (payload) => {
 
     console.log('[MenuService] Sending POST /api/v1/menus/after:', formattedPayload);
 
-    const response = await fetch('/api/v1/menus/after', {
+    const response = await fetch(`${API_BASE_URL}/api/v1/menus/after`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -265,7 +267,7 @@ export const getMenusAfterService = async (lineUid, selectedDate = null, forceRe
       return { success: true, data: todayMenusAfterCache.data, fromCache: true };
     }
 
-    const response = await fetch(`/api/v1/menu/after?line_uid=${encodeURIComponent(lineUid)}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/menu/after?line_uid=${encodeURIComponent(lineUid)}`, {
       method: 'GET',
       headers: {
         'Accept': '*/*'

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoadingOverlay from '../../components/Loading/LoadingOverlay';
+import { getUserService } from '../../services/user.service';
 
 const LineCallback = () => {
   const navigate = useNavigate();
@@ -100,33 +101,13 @@ const LineCallback = () => {
         // เช็คว่า user มีข้อมูล Cal (TDEE) หรือไม่
         let hasCalData = false;
         try {
-          const userResponse = await fetch(`/api/v1/user/${profileData.userId}`);
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            const record = userData.data || userData;
+          const userRes = await getUserService(profileData.userId);
+          if (userRes.success && userRes.data) {
+            const record = userRes.data;
             hasCalData = record && record.cal && record.cal !== 0 && record.cal !== '0';
-          } else {
-            // Fallback ตรวจสอบกับ Airtable ชั่วคราวกรณี Backend ยังไม่มีเส้น GET
-            const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
-            const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
-            const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
-            if (apiToken && baseId && tableId) {
-              const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-              const airtableResponse = await fetch(`${airtableUrl}?filterByFormula=${encodeURIComponent(`line_uid='${profileData.userId}'`)}`, {
-                headers: {
-                  'Authorization': `Bearer ${apiToken}`,
-                  'Content-Type': 'application/json'
-                }
-              });
-              const airtableData = await airtableResponse.json();
-              if (airtableData.records && airtableData.records.length > 0) {
-                const userRecord = airtableData.records[0].fields;
-                hasCalData = userRecord.Cal && userRecord.Cal !== '' && userRecord.Cal !== '0';
-              }
-            }
           }
-        } catch (apiError) {
-          console.warn('Could not check user data:', apiError);
+        } catch (e) {
+          console.log('Cannot check user data:', e);
         }
 
         // เก็บข้อมูล user
