@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Activity, ShieldAlert, Cpu, Loader2, MapPin } from 'lucide-react';
+import LoadingOverlay from '../../components/Loading/LoadingOverlay';
 import { Snackbar, Alert } from "@mui/material";
 import { fetchWithAuth } from "../../utils/api";
 
@@ -125,13 +126,8 @@ const Portal = () => {
         </p>
       </div>
 
-      {/* Minimal Loading Overlay */}
-      {isLoggingOut && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/90">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-          <p className="mt-4 text-xs font-bold text-emerald-600 uppercase tracking-widest animate-pulse">กำลังออกจากระบบ...</p>
-        </div>
-      )}
+      {/* Loading Overlay */}
+      <LoadingOverlay show={isLoggingOut} message="กำลังออกจากระบบ..." />
 
       <Snackbar 
         open={snackbar.open} 

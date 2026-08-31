@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import LoadingOverlay from '../../components/Loading/LoadingOverlay';
 
 const LineLogin = () => {
   const navigate = useNavigate();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Auto-login: หากเคยเข้าสู่ระบบแล้ว ให้ข้ามไปหน้า Dashboard ทันที
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user && user.id) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing user session:', e);
+    } finally {
+      setIsCheckingAuth(false);
+    }
+  }, [navigate]);
   
   const handleLineLogin = () => {
     const channelId = import.meta.env.VITE_LINE_CHANNEL_ID;
@@ -16,6 +36,10 @@ const LineLogin = () => {
     
     window.location.href = lineAuthUrl;
   };
+
+  if (isCheckingAuth) {
+    return <LoadingOverlay show={true} message="กำลังตรวจสอบการเข้าสู่ระบบ..." />;
+  }
 
   return (
     <div 

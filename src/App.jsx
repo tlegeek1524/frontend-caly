@@ -13,11 +13,24 @@ import SidebarLayout from "./components/Sidebar/SidebarLayout";
 import Portal from "./page/portal/index";
 import AdminDashboard from "./page/admin/index";
 import CheckInPage from "./page/checkin/CheckInPage";
+import { Toaster } from "react-hot-toast";
 import "./App.css";
 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          className: "text-xs font-medium !py-2 !px-3 !rounded-xl !shadow-md !max-w-xs",
+          duration: 3500,
+          style: {
+            fontSize: "12px",
+            padding: "8px 12px",
+          },
+        }}
+      />
       <Routes>
         <Route path="/" element={<LineLogin />} />
         <Route path="/linelogin" element={<LineLogin />} />

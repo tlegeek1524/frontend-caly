@@ -4,24 +4,39 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 import OpenAI from "openai";
 import BottomNav from "../../../components/BottomNav/BottomNav";
+import LoadingOverlay from "../../../components/Loading/LoadingOverlay";
+import { 
+  createMenuService, 
+  getMenusService, 
+  getMenusAfterService, 
+  calculateDailyNutrition 
+} from "../../../services/menu.service";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// Airtable Functions
+// User Functions
 const fetchUserTDEE = async (lineUid) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
-
-  const url = `https://api.airtable.com/v0/${baseId}/${tableId}?filterByFormula=${encodeURIComponent(`line_uid='${lineUid}'`)}`;
-
   try {
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${apiToken}` },
-    });
-    const data = await response.json();
-    if (data.records && data.records.length > 0) {
-      return data.records[0].fields.Cal || 2000;
+    const response = await fetch(`/api/v1/user/${lineUid}`);
+    if (response.ok) {
+      const data = await response.json();
+      const record = data.data || data;
+      if (record && record.cal) {
+        return parseInt(record.cal);
+      }
+    }
+
+    // Fallback จาก Airtable ชั่วคราวถ้า Backend ยังไม่มีเส้น GET
+    const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
+    const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
+    const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
+    if (apiToken && baseId && tableId) {
+      const url = `https://api.airtable.com/v0/${baseId}/${tableId}?filterByFormula=${encodeURIComponent(`line_uid='${lineUid}'`)}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${apiToken}` } });
+      const data = await res.json();
+      if (data.records && data.records.length > 0) {
+        return data.records[0].fields.Cal || 2000;
+      }
     }
     return 2000;
   } catch (error) {
@@ -31,113 +46,14 @@ const fetchUserTDEE = async (lineUid) => {
 };
 
 const fetchFoodRecords = async (lineUid, selectedDate) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
-
   try {
-    let allRecords = [];
-    let offset = null;
-
-    // ดึงข้อมูลทั้งหมดด้วย pagination
-    do {
-      const url = offset
-        ? `https://api.airtable.com/v0/${baseId}/${tableId}?offset=${offset}`
-        : `https://api.airtable.com/v0/${baseId}/${tableId}`;
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-
-      if (data.records) {
-        allRecords = allRecords.concat(data.records);
-      }
-
-      offset = data.offset;
-    } while (offset);
-
-    if (!allRecords.length) return [];
-
-    const records = allRecords
-      .filter((record) => {
-        const fields = record.fields;
-        if (fields.line_uid !== lineUid) return false;
-        const recordDate = fields.date || "2000-01-01T00:00:00.000Z";
-        const recordDateTime = new Date(recordDate);
-        const recordDateStr = recordDateTime.toISOString().split("T")[0];
-        return recordDateStr === selectedDate;
-      })
-      .map((record) => ({
-        id: record.id,
-        menu: record.fields.menu || "ไม่ระบุเมนู",
-        date: record.fields.date,
-        cal: record.fields.cal || 0,
-        protein: record.fields.protine || 0,
-        carb: record.fields.carb || 0,
-        fat: record.fields.fat || 0,
-        image: record.fields.image?.[0]?.url || null,
-        runnum: record.fields.runnum || null
-      }))
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    return records;
+    const res = await getMenusService(lineUid, selectedDate);
+    if (res.success && res.data) {
+      return res.data;
+    }
+    return [];
   } catch (error) {
     console.error("Error fetching food records:", error);
-    return [];
-  }
-};
-
-// ดึงข้อมูลอาหารหลังกินจาก Table2
-const fetchFoodAfterRecords = async (lineUid) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD_AFTER;
-  
-  try {
-    let allRecords = [];
-    let offset = null;
-    
-    do {
-      const url = offset 
-        ? `https://api.airtable.com/v0/${baseId}/${tableId}?offset=${offset}`
-        : `https://api.airtable.com/v0/${baseId}/${tableId}`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      
-      if (data.records) {
-        allRecords = allRecords.concat(data.records);
-      }
-      
-      offset = data.offset;
-    } while (offset);
-    
-    if (!allRecords.length) return [];
-    
-    // กรองเฉพาะ line_uid เท่านั้น
-    const records = allRecords
-      .filter(record => record.fields.line_uid === lineUid)
-      .map(record => ({
-        id: record.id,
-        mash: record.fields.mash || null,
-        cal: record.fields.cal || 0,
-        protein: record.fields.protine || 0,
-        carb: record.fields.carb || 0,
-        fat: record.fields.fat || 0
-      }));
-    
-    return records;
-  } catch (error) {
-    console.error('❌ Error fetching food after records:', error);
     return [];
   }
 };
@@ -234,15 +150,8 @@ const compressImage = async (file, maxSizeMB = 1, maxWidthOrHeight = 1920) => {
 };
 
 const addFoodRecord = async (lineUid, foodData, imageFile) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
-
-  const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-
   try {
-    // Compress และอัพโหลดรูปภาพ
-    let imageAttachment = null;
+    let imageUrl = "";
     if (imageFile) {
       console.log(
         "ขนาดรูปต้นฉบับ:",
@@ -257,45 +166,39 @@ const addFoodRecord = async (lineUid, foodData, imageFile) => {
         "MB",
       );
 
-      // อัพโหลดไป ImgBB
-      const imageUrl = await uploadImageToImgBB(compressedFile);
-      console.log("Image URL:", imageUrl);
-
-      // Airtable รับ attachment ในรูปแบบ URL
-      imageAttachment = [
-        {
-          url: imageUrl,
-        },
-      ];
+      // อัพโหลดรูปภาพ
+      imageUrl = await uploadImageToImgBB(compressedFile);
+      console.log("Uploaded Image URL/Path:", imageUrl);
     }
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-        "Content-Type": "application/json",
+    const payload = {
+      line_uid: lineUid,
+      menu: foodData.menu,
+      cal: Number(foodData.cal) || 0,
+      protein: Number(foodData.protein) || 0,
+      carb: Number(foodData.carb) || 0,
+      fat: Number(foodData.fat) || 0,
+      date: new Date().toISOString(),
+      image_url: imageUrl || "",
+      runnum: "1",
+      mash: foodData.mash || "lunch",
+      eat_percent: 100
+    };
+
+    const { success, data, error } = await createMenuService(payload);
+
+    if (!success) {
+      console.error("Error from createMenuService:", error);
+      throw new Error(error?.message || "Failed to save record via API");
+    }
+
+    return {
+      fields: {
+        ...payload,
+        image: imageUrl ? [{ url: imageUrl }] : []
       },
-      body: JSON.stringify({
-        fields: {
-          line_uid: lineUid,
-          menu: foodData.menu,
-          cal: foodData.cal,
-          protine: foodData.protein,
-          carb: foodData.carb,
-          fat: foodData.fat,
-          date: new Date().toISOString(),
-          ...(imageAttachment && { image: imageAttachment }),
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Airtable Error:", errorData);
-      throw new Error(errorData.error?.message || "Failed to save record");
-    }
-
-    return await response.json();
+      data
+    };
   } catch (error) {
     console.error("Error adding food record:", error);
     return null;
@@ -373,12 +276,17 @@ const MainDashboard = () => {
     return null;
   }, []);
 
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
-  const [displayDate, setDisplayDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  // ดึงวันที่ปัจจุบันตาม Local Timezone (YYYY-MM-DD)
+  const getTodayLocalDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getTodayLocalDate);
+  const [displayDate, setDisplayDate] = useState(getTodayLocalDate);
   const [animatedPercentage, setAnimatedPercentage] = useState(0);
   const [animatedCal, setAnimatedCal] = useState(0);
   const [showCameraModal, setShowCameraModal] = useState(false);
@@ -398,40 +306,6 @@ const MainDashboard = () => {
   const [cameraStream, setCameraStream] = useState(null);
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
-
-  // เช็คความยินยอม PDPA จาก API
-  useEffect(() => {
-    const checkPDPA = async () => {
-      if (!user || !user.id) return;
-
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3333";
-        const response = await fetch(
-          `${apiUrl.replace(/\/$/, "")}/api/pdpa-consent/check?user_id=${user.id}`
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          // เช็คฟิลด์ความยินยอม
-          if (data.consented || data.status === true || data.status === "approved" || data.exists || data.hasConsented || data.approved) {
-            setShowPDPA(false);
-            localStorage.setItem("gps_consent", "true");
-          } else {
-            setShowPDPA(true);
-          }
-        } else {
-          // ถ้า 404 หรือ response ไม่ ok แสดงว่ายังไม่เคยยินยอม
-          setShowPDPA(true);
-        }
-      } catch (error) {
-        console.error("Error checking PDPA consent:", error);
-        // Fallback: แสดงโมเดลเพื่อความปลอดภัยในการคุ้มครองข้อมูล
-        setShowPDPA(true);
-      }
-    };
-
-    checkPDPA();
-  }, [user?.id]);
 
   // ล็อคการเลื่อนหน้าเมื่อ PDPA popup เปิด
   useEffect(() => {
@@ -479,7 +353,7 @@ const MainDashboard = () => {
     }
   }, [user, navigate]);
 
-  // ดึงข้อมูล TDEE และรายการอาหารครั้งแรก
+  // ดึงข้อมูล TDEE และรายการอาหารจาก GET /api/v1/menus?line_uid=... และอาหารหลังกิน
   useEffect(() => {
     if (!user || !user.id) return;
 
@@ -490,13 +364,15 @@ const MainDashboard = () => {
         const tdee = await fetchUserTDEE(user.id);
         setUserTDEE(tdee);
 
-        // ดึงรายการอาหาร
-        const [records, afterRecords] = await Promise.all([
+        // ดึงรายการอาหารก่อนกิน และรายการหลังกิน
+        const [records, afterRes] = await Promise.all([
           fetchFoodRecords(user.id, displayDate),
-          fetchFoodAfterRecords(user.id)
+          getMenusAfterService(user.id)
         ]);
         setFoodRecords(records);
-        setFoodAfterRecords(afterRecords);
+        if (afterRes.success && afterRes.data) {
+          setFoodAfterRecords(afterRes.data);
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -513,8 +389,14 @@ const MainDashboard = () => {
 
     setLoading(true);
     try {
-      const records = await fetchFoodRecords(user.id, selectedDate);
+      const [records, afterRes] = await Promise.all([
+        fetchFoodRecords(user.id, selectedDate),
+        getMenusAfterService(user.id)
+      ]);
       setFoodRecords(records);
+      if (afterRes.success && afterRes.data) {
+        setFoodAfterRecords(afterRes.data);
+      }
       setDisplayDate(selectedDate);
 
       // ถ้าไม่มีข้อมูล แสดง popup
@@ -534,32 +416,11 @@ const MainDashboard = () => {
     tdee: userTDEE || 0,
   };
 
-  // คำนวณสรุปโภชนาการ - ใช้ค่าจริงที่กินไป
-  // ถ้ามีรูปหลังกิน (Table2) ให้ใช้ค่าจาก Table2
-  // ถ้าไม่มีรูปหลังกิน ให้ใช้ค่าจาก Table1 (ก่อนกิน)
-  let totalCal = 0;
-  let totalProtein = 0;
-  let totalCarb = 0;
-  let totalFat = 0;
-
-  foodRecords.forEach(record => {
-    // หาข้อมูลหลังกินที่ตรงกับ runnum
-    const afterData = foodAfterRecords.find(after => after.mash === record.runnum);
-    
-    if (afterData) {
-      // ถ้ามีรูปหลังกิน ใช้ค่าจาก Table2
-      totalCal += afterData.cal || 0;
-      totalProtein += afterData.protein || 0;
-      totalCarb += afterData.carb || 0;
-      totalFat += afterData.fat || 0;
-    } else {
-      // ถ้าไม่มีรูปหลังกิน ใช้ค่าจาก Table1
-      totalCal += record.cal || 0;
-      totalProtein += record.protein || 0;
-      totalCarb += record.carb || 0;
-      totalFat += record.fat || 0;
-    }
-  });
+  // คำนวณสรุปโภชนาการจาก Business Logic Service (คำนวณเฉพาะมื้อที่ทานเสร็จสิ้นแล้ว)
+  const { totalCal, totalProtein, totalCarb, totalFat } = calculateDailyNutrition(
+    foodRecords,
+    foodAfterRecords
+  );
 
   // คำนวณแคลอรี่จากโภชนาการ (สำหรับแสดงในกราฟ)
   const proteinCal = totalProtein * 4;
@@ -1219,34 +1080,6 @@ const MainDashboard = () => {
         </div>
       )}
 
-      {/* Loading Modal - แสดงเฉพาะตอนกดปุ่ม "ดู" */}
-      {loading && !isAnalyzing && !initialLoading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[17px] font-semibold text-black">
-                กำลังโหลดข้อมูล...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Analyzing Modal */}
-      {isAnalyzing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[17px] font-semibold text-black">
-                กำลังวิเคราะห์รูปภาพ...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* No Data Modal */}
       {showNoDataModal && (
         <div
@@ -1509,6 +1342,12 @@ const MainDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Transparent Loading Overlay */}
+      <LoadingOverlay
+        show={loading || initialLoading || isAnalyzing}
+        message={isAnalyzing ? "กำลังวิเคราะห์รูปภาพ..." : "กำลังโหลดข้อมูล..."}
+      />
     </div>
   );
 };

@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronDown, Check } from 'lucide-react';
 import NavbarRegis from './navbarregis/NavbarRegis';
+import LoadingOverlay from '../../../components/Loading/LoadingOverlay';
+import { 
+  calculateBMR, 
+  calculateTDEEValue, 
+  getUserService, 
+  createUserService, 
+  updateUserService 
+} from '../../../services/user.service';
 
 const Regispage = () => {
   const navigate = useNavigate();
@@ -20,7 +29,9 @@ const Regispage = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // ดึงข้อมูลเดิมจาก Airtable เมื่อเปิดหน้า
+  const [isExistingUser, setIsExistingUser] = useState(false);
+
+  // ดึงข้อมูลเดิมของผู้ใช้เมื่อเปิดหน้า
   useEffect(() => {
     const loadExistingData = async () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -30,49 +41,30 @@ const Regispage = () => {
       }
 
       try {
-        const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
-        const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
-        const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
-        
-        const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-        
-        const response = await fetch(`${url}?filterByFormula=${encodeURIComponent(`line_uid='${user.id}'`)}`, {
-          headers: { 'Authorization': `Bearer ${apiToken}` }
-        });
-        const data = await response.json();
-        
-        if (data.records && data.records.length > 0) {
-          const record = data.records[0].fields;
-          
-          // แปลง field names จาก Airtable มาเป็น formData
-          const activityLevelMap = {
-            'very_active': 'very_active',
-            'active': 'active',
-            'moderate': 'moderate',
-            'light': 'light',
-            'sedentary': 'sedentary'
-          };
-          
-          setFormData({
-            gender: record.Gender?.toLowerCase() || '',
-            weight: record.Weight || '',
-            height: record.Height || '',
-            age: record.Age || '',
-            activityLevel: activityLevelMap[record['Activity Level']] || '',
-            goal: record.Goal?.toLowerCase() || 'maintain'
-          });
-          
-          // ถ้ามี TDEE อยู่แล้ว ให้แสดงด้วย
-          if (record.Cal) {
-            setResult({
-              bmr: 0, // ไม่มีใน Airtable
-              tdee: parseInt(record.Cal)
+        const { success, data: record } = await getUserService(user.id);
+        if (success && record) {
+          if (record.gender || record.weight || record.cal) {
+            setIsExistingUser(true);
+            setFormData({
+              gender: record.gender?.toLowerCase() || '',
+              weight: record.weight !== undefined && record.weight !== null ? String(record.weight) : '',
+              height: record.height !== undefined && record.height !== null ? String(record.height) : '',
+              age: record.age !== undefined && record.age !== null ? String(record.age) : '',
+              activityLevel: record.activity_level || record.activityLevel || '',
+              goal: record.goal?.toLowerCase() || 'maintain'
             });
-            setEditableTDEE(parseInt(record.Cal));
+            
+            if (record.cal) {
+              setResult({
+                bmr: 0,
+                tdee: parseInt(record.cal)
+              });
+              setEditableTDEE(parseInt(record.cal));
+            }
           }
         }
       } catch (error) {
-        console.error('Error loading existing data:', error);
+        console.error('Error loading existing data from API:', error);
       } finally {
         setIsLoadingData(false);
       }
@@ -96,48 +88,19 @@ const Regispage = () => {
     setTimeout(() => {
       const { gender, weight, height, age, activityLevel, goal } = formData;
       
-      // คำนวณ BMR
-      const bmr = 10 * parseFloat(weight) + 6.25 * parseFloat(height) - 5 * parseFloat(age) + (gender === 'male' ? 5 : -161);
-      
-      // คำนวณ TDEE ตามระดับกิจกรรม
-      let tdee;
-      switch (activityLevel) {
-        case 'sedentary':
-          tdee = bmr * 1.2;
-          break;
-        case 'light':
-          tdee = bmr * 1.375;
-          break;
-        case 'moderate':
-          tdee = bmr * 1.55;
-          break;
-        case 'active':
-          tdee = bmr * 1.725;
-          break;
-        case 'very_active':
-          tdee = bmr * 1.9;
-          break;
-        default:
-          tdee = bmr;
-      }
-      
-      // ปรับตามเป้าหมาย
-      if (goal === 'lose') {
-        tdee -= 500;
-      } else if (goal === 'gain') {
-        tdee += 500;
-      }
+      const bmr = calculateBMR({ gender, weight, height, age });
+      const tdee = calculateTDEEValue({ bmr, activityLevel, goal });
       
       const calculatedResult = {
-        bmr: Math.round(bmr),
-        tdee: Math.round(tdee)
+        bmr,
+        tdee
       };
       
       setResult(calculatedResult);
       setEditableTDEE(calculatedResult.tdee);
       setIsCalculating(false);
       setShowPopup(true);
-    }, 800);
+    }, 500);
   };
 
   const handleConfirm = async () => {
@@ -147,94 +110,55 @@ const Regispage = () => {
     console.log('Confirmed TDEE:', editableTDEE);
     console.log('Form data:', formData);
     
-    // บันทึกข้อมูลลง Airtable (ถ้ามี)
+    // บันทึกข้อมูลผ่าน API
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.id) {
       try {
-        const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
-        const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
-        const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
+        const tdeeValue = Number(editableTDEE);
         
-        const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-        
-        // เช็คว่ามี record อยู่แล้วหรือไม่
-        const checkResponse = await fetch(`${url}?filterByFormula=${encodeURIComponent(`line_uid='${user.id}'`)}`, {
-          headers: { 'Authorization': `Bearer ${apiToken}` }
-        });
-        const checkData = await checkResponse.json();
-        
-        // แปลง TDEE เป็น string
-        const tdeeValue = String(editableTDEE);
-        
-        console.log('TDEE value to save:', tdeeValue);
-        
-        if (!tdeeValue || tdeeValue === '' || tdeeValue === 'NaN' || isNaN(Number(tdeeValue))) {
+        if (isNaN(tdeeValue) || tdeeValue <= 0) {
           console.error('Invalid TDEE value:', editableTDEE);
           alert('ค่า TDEE ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
           setIsUpdating(false);
           return;
         }
-        
-        // ข้อมูลที่จะบันทึก
-        const fieldsToUpdate = {
-          Gender: formData.gender,
-          Weight: String(formData.weight),
-          Height: String(formData.height),
-          Age: String(formData.age),
-          'Activity Level': formData.activityLevel,
-          Goal: formData.goal,
-          Cal: tdeeValue
+
+        const basePayload = {
+          gender: formData.gender,
+          age: parseInt(formData.age, 10) || null,
+          weight: parseFloat(formData.weight) || null,
+          height: parseFloat(formData.height) || null,
+          activity_level: formData.activityLevel,
+          goal: formData.goal,
+          cal: tdeeValue
         };
-        
-        console.log('Fields to update:', fieldsToUpdate);
-        console.log('Fields to update (JSON):', JSON.stringify(fieldsToUpdate, null, 2));
-        
-        if (checkData.records && checkData.records.length > 0) {
-          // อัพเดท record เดิม
-          const recordId = checkData.records[0].id;
-          const response = await fetch(`${url}/${recordId}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${apiToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fields: fieldsToUpdate
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Airtable Error:', errorData);
-            console.log('Existing record fields:', checkData.records[0].fields);
+
+        if (isExistingUser) {
+          console.log('PATCH to /api/v1/user/' + user.id, basePayload);
+          const { success, error } = await updateUserService(user.id, basePayload);
+          if (!success) {
+            console.error('API Error updating user (PATCH):', error);
+            alert('อัปเดตข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
           } else {
-            console.log('Update successful');
+            console.log('User data updated successfully via PATCH');
           }
         } else {
-          // สร้าง record ใหม่
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fields: {
-                line_uid: user.id,
-                ...fieldsToUpdate
-              }
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Airtable Error:', errorData);
+          const postPayload = {
+            line_uid: user.id,
+            ...basePayload
+          };
+          console.log('POST to /api/v1/user:', postPayload);
+          const { success, error } = await createUserService(postPayload);
+          if (!success) {
+            console.error('API Error creating user (POST):', error);
+            alert('บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
           } else {
-            console.log('Create successful');
+            console.log('User data created successfully via POST');
           }
         }
       } catch (error) {
-        console.error('Error saving to Airtable:', error);
+        console.error('Error saving user data:', error);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
       }
     }
     
@@ -263,27 +187,63 @@ const Regispage = () => {
     };
   }, [showPopup]);
 
+  // Options Data for Custom Select
+  const genderOptions = [
+    { value: 'male', label: 'ชาย' },
+    { value: 'female', label: 'หญิง' }
+  ];
+
+  const activityOptions = [
+    { value: 'sedentary', label: 'นั่งทำงานเป็นส่วนใหญ่ ไม่ค่อยออกกำลังกาย' },
+    { value: 'light', label: 'ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์' },
+    { value: 'moderate', label: 'ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์' },
+    { value: 'active', label: 'ออกกำลังกายหนัก 6-7 วัน/สัปดาห์' },
+    { value: 'very_active', label: 'ออกกำลังกายหนักมาก หรือมีงานใช้แรง' }
+  ];
+
+  const goalOptions = [
+    { value: 'maintain', label: 'คงน้ำหนัก' },
+    { value: 'lose', label: 'ลดน้ำหนัก (ลด 500 kcal/วัน)' },
+    { value: 'gain', label: 'เพิ่มน้ำหนัก (เพิ่ม 500 kcal/วัน)' }
+  ];
+
+  const [openDropdown, setOpenDropdown] = useState(null); // 'gender' | 'activity' | 'goal' | null
+
+  // ปิด dropdown เมื่อคลิกข้างนอก
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.custom-dropdown-container')) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleSelectOption = (name, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+    setOpenDropdown(null);
+  };
+
   return (
     <div className="min-h-screen bg-[#f2f2f7] transition-all duration-300" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
       {/* Navbar */}
       <NavbarRegis />
       
-      {/* Loading Initial Data */}
-      {isLoadingData ? (
-        <div className="max-w-md mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-[17px] font-semibold text-black">กำลังโหลดข้อมูล...</p>
-          </div>
-        </div>
-      ) : (
+      {/* Loading Overlay */}
+      <LoadingOverlay show={isLoadingData || isUpdating} message={isUpdating ? "กำลังอัพเดทข้อมูล..." : "กำลังโหลดข้อมูล..."} />
+
+      {!isLoadingData && (
         <div className="max-w-md mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-[28px] font-bold text-black tracking-tight mb-2">
+          <h2 className="text-[28px] font-bold text-slate-900 tracking-tight mb-2">
             คำนวณ TDEE
           </h2>
-          <p className="text-[15px] text-[#8e8e93]">
+          <p className="text-[15px] text-slate-500">
             กรอกข้อมูลเพื่อคำนวณความต้องการพลังงานรายวัน
           </p>
         </div>
@@ -291,126 +251,177 @@ const Regispage = () => {
         {/* Form */}
         <form onSubmit={calculateTDEE} className="space-y-4">
           {/* Card Container */}
-          <div className="bg-white rounded-[12px] overflow-hidden shadow-sm transform transition-all duration-300 hover:shadow-md">
-            {/* Gender */}
-            <div className="px-4 py-3 border-b border-[#e5e5ea] transition-colors duration-200">
-              <label className="block text-[13px] text-black mb-2">เพศ</label>
-              <select 
-                name="gender" 
-                value={formData.gender} 
-                onChange={handleChange}
-                className="w-full px-3 py-2.5 text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black appearance-none focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 12px center',
-                  paddingRight: '36px'
-                }}
-                required
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-100 overflow-visible">
+            {/* Gender Dropdown */}
+            <div className="px-4 py-3.5 relative custom-dropdown-container">
+              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">เพศ</label>
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'gender' ? null : 'gender')}
+                className={`w-full px-3.5 py-2.5 text-[15px] rounded-xl flex items-center justify-between border transition-all duration-200 text-left ${
+                  openDropdown === 'gender'
+                    ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20'
+                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
+                }`}
               >
-                <option value="">เลือกเพศ</option>
-                <option value="male">ชาย</option>
-                <option value="female">หญิง</option>
-              </select>
+                <span className={formData.gender ? 'text-slate-900 font-medium' : 'text-slate-400'}>
+                  {genderOptions.find(o => o.value === formData.gender)?.label || 'เลือกเพศ'}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openDropdown === 'gender' ? 'rotate-180 text-emerald-500' : ''}`} />
+              </button>
+
+              {/* Menu List */}
+              {openDropdown === 'gender' && (
+                <div className="absolute left-4 right-4 mt-2 z-50 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 animate-fadeIn">
+                  {genderOptions.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.value}
+                      onClick={() => handleSelectOption('gender', opt.value)}
+                      className={`w-full px-4 py-2.5 text-[14px] flex items-center justify-between text-left transition-colors ${
+                        formData.gender === opt.value
+                          ? 'bg-emerald-50 text-emerald-600 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {formData.gender === opt.value && <Check className="w-4 h-4 text-emerald-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Weight & Height */}
-            <div className="grid grid-cols-2 border-b border-[#e5e5ea]">
-              <div className="px-4 py-3 border-r border-[#e5e5ea]">
-                <label className="block text-[13px] text-black mb-2">น้ำหนัก</label>
-                <div className="flex items-center bg-[#f2f2f7] rounded-lg overflow-hidden transition-all duration-200 focus-within:bg-[#e5e5ea]">
+            <div className="grid grid-cols-2 divide-x divide-slate-100">
+              <div className="px-4 py-3.5">
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">น้ำหนัก</label>
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
                   <input 
                     type="number" 
                     name="weight" 
                     value={formData.weight}
                     onChange={handleChange}
-                    className="flex-1 px-3 py-2.5 text-[17px] bg-transparent border-0 text-black focus:outline-none"
+                    className="flex-1 px-3 py-2.5 text-[15px] bg-transparent border-0 text-slate-900 focus:outline-none"
                     placeholder="0"
                     required
                   />
-                  <span className="px-3 text-[17px] text-[#8e8e93]">kg</span>
+                  <span className="px-3 text-[14px] text-slate-400 font-medium">kg</span>
                 </div>
               </div>
 
-              <div className="px-4 py-3">
-                <label className="block text-[13px] text-black mb-2">ส่วนสูง</label>
-                <div className="flex items-center bg-[#f2f2f7] rounded-lg overflow-hidden transition-all duration-200 focus-within:bg-[#e5e5ea]">
+              <div className="px-4 py-3.5">
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">ส่วนสูง</label>
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
                   <input 
                     type="number" 
                     name="height" 
                     value={formData.height}
                     onChange={handleChange}
-                    className="flex-1 px-3 py-2.5 text-[17px] bg-transparent border-0 text-black focus:outline-none"
+                    className="flex-1 px-3 py-2.5 text-[15px] bg-transparent border-0 text-slate-900 focus:outline-none"
                     placeholder="0"
                     required
                   />
-                  <span className="px-3 text-[17px] text-[#8e8e93]">cm</span>
+                  <span className="px-3 text-[14px] text-slate-400 font-medium">cm</span>
                 </div>
               </div>
             </div>
 
             {/* Age */}
-            <div className="px-4 py-3 border-b border-[#e5e5ea]">
-              <label className="block text-[13px] text-black mb-2">อายุ</label>
-              <div className="flex items-center bg-[#f2f2f7] rounded-lg overflow-hidden transition-all duration-200 focus-within:bg-[#e5e5ea]">
+            <div className="px-4 py-3.5">
+              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">อายุ</label>
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden transition-all duration-200 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
                 <input 
                   type="number" 
                   name="age" 
                   value={formData.age}
                   onChange={handleChange}
-                  className="flex-1 px-3 py-2.5 text-[17px] bg-transparent border-0 text-black focus:outline-none"
+                  className="flex-1 px-3 py-2.5 text-[15px] bg-transparent border-0 text-slate-900 focus:outline-none"
                   placeholder="0"
                   required
                 />
-                <span className="px-3 text-[17px] text-[#8e8e93]">ปี</span>
+                <span className="px-3 text-[14px] text-slate-400 font-medium">ปี</span>
               </div>
             </div>
 
-            {/* Activity Level */}
-            <div className="px-4 py-3 border-b border-[#e5e5ea]">
-              <label className="block text-[13px] text-black mb-2">ระดับกิจกรรม</label>
-              <select 
-                name="activityLevel" 
-                value={formData.activityLevel}
-                onChange={handleChange}
-                className="w-full px-3 py-2.5 text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black appearance-none focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 12px center',
-                  paddingRight: '36px'
-                }}
-                required
+            {/* Activity Level Dropdown */}
+            <div className="px-4 py-3.5 relative custom-dropdown-container">
+              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">ระดับกิจกรรม</label>
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'activity' ? null : 'activity')}
+                className={`w-full px-3.5 py-2.5 text-[15px] rounded-xl flex items-center justify-between border transition-all duration-200 text-left ${
+                  openDropdown === 'activity'
+                    ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20'
+                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
+                }`}
               >
-                <option value="">เลือกระดับกิจกรรม</option>
-                <option value="sedentary">นั่งทำงานเป็นส่วนใหญ่ ไม่ค่อยออกกำลังกาย</option>
-                <option value="light">ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์</option>
-                <option value="moderate">ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์</option>
-                <option value="active">ออกกำลังกายหนัก 6-7 วัน/สัปดาห์</option>
-                <option value="very_active">ออกกำลังกายหนักมาก หรือมีงานใช้แรง</option>
-              </select>
+                <span className={formData.activityLevel ? 'text-slate-900 font-medium truncate pr-2' : 'text-slate-400 truncate pr-2'}>
+                  {activityOptions.find(o => o.value === formData.activityLevel)?.label || 'เลือกระดับกิจกรรม'}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${openDropdown === 'activity' ? 'rotate-180 text-emerald-500' : ''}`} />
+              </button>
+
+              {/* Menu List */}
+              {openDropdown === 'activity' && (
+                <div className="absolute left-4 right-4 mt-2 z-50 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 animate-fadeIn max-h-60 overflow-y-auto">
+                  {activityOptions.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.value}
+                      onClick={() => handleSelectOption('activityLevel', opt.value)}
+                      className={`w-full px-4 py-2.5 text-[14px] flex items-center justify-between text-left transition-colors ${
+                        formData.activityLevel === opt.value
+                          ? 'bg-emerald-50 text-emerald-600 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="pr-2">{opt.label}</span>
+                      {formData.activityLevel === opt.value && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Goal */}
-            <div className="px-4 py-3">
-              <label className="block text-[13px] text-black mb-2">เป้าหมาย</label>
-              <select 
-                name="goal" 
-                value={formData.goal}
-                onChange={handleChange}
-                className="w-full px-3 py-2.5 text-[17px] bg-[#f2f2f7] rounded-lg border-0 text-black appearance-none focus:bg-[#e5e5ea] focus:outline-none transition-all duration-200"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 12px center',
-                  paddingRight: '36px'
-                }}
-                required
+            {/* Goal Dropdown */}
+            <div className="px-4 py-3.5 relative custom-dropdown-container">
+              <label className="block text-[13px] font-medium text-slate-700 mb-1.5">เป้าหมาย</label>
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'goal' ? null : 'goal')}
+                className={`w-full px-3.5 py-2.5 text-[15px] rounded-xl flex items-center justify-between border transition-all duration-200 text-left ${
+                  openDropdown === 'goal'
+                    ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20'
+                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
+                }`}
               >
-                <option value="maintain">คงน้ำหนัก</option>
-                <option value="lose">ลดน้ำหนัก (ลด 500 kcal/วัน)</option>
-                <option value="gain">เพิ่มน้ำหนัก (เพิ่ม 500 kcal/วัน)</option>
-              </select>
+                <span className={formData.goal ? 'text-slate-900 font-medium' : 'text-slate-400'}>
+                  {goalOptions.find(o => o.value === formData.goal)?.label || 'เลือกเป้าหมาย'}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openDropdown === 'goal' ? 'rotate-180 text-emerald-500' : ''}`} />
+              </button>
+
+              {/* Menu List */}
+              {openDropdown === 'goal' && (
+                <div className="absolute left-4 right-4 mt-2 z-50 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 animate-fadeIn">
+                  {goalOptions.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.value}
+                      onClick={() => handleSelectOption('goal', opt.value)}
+                      className={`w-full px-4 py-2.5 text-[14px] flex items-center justify-between text-left transition-colors ${
+                        formData.goal === opt.value
+                          ? 'bg-emerald-50 text-emerald-600 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {formData.goal === opt.value && <Check className="w-4 h-4 text-emerald-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -434,18 +445,6 @@ const Regispage = () => {
           </button>
         </form>
       </div>
-      )}
-
-      {/* Updating Modal */}
-      {isUpdating && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[17px] font-semibold text-black">กำลังอัพเดทข้อมูล...</p>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Popup Modal */}

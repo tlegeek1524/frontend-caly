@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import LoadingOverlay from '../../components/Loading/LoadingOverlay';
 
 const LineCallback = () => {
   const navigate = useNavigate();
@@ -96,29 +97,36 @@ const LineCallback = () => {
 
         profileData.userId = profile.userId;
 
-        // เช็คว่า user มีข้อมูล Cal (TDEE) ใน Airtable หรือไม่
-        const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
-        const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
-        const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
-        
-        const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-        
-        // ใช้ filterByFormula เพื่อค้นหาเฉพาะ user นี้
-        const airtableResponse = await fetch(`${airtableUrl}?filterByFormula=${encodeURIComponent(`line_uid='${profileData.userId}'`)}`, {
-          headers: {
-            'Authorization': `Bearer ${apiToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        const airtableData = await airtableResponse.json();
-        
-        // เช็คว่ามี record และมีค่า Cal (TDEE) หรือไม่
+        // เช็คว่า user มีข้อมูล Cal (TDEE) หรือไม่
         let hasCalData = false;
-        if (airtableData.records && airtableData.records.length > 0) {
-          const userRecord = airtableData.records[0].fields;
-          // เช็คว่ามี Cal และไม่เป็นค่าว่าง
-          hasCalData = userRecord.Cal && userRecord.Cal !== '' && userRecord.Cal !== '0';
+        try {
+          const userResponse = await fetch(`/api/v1/user/${profileData.userId}`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            const record = userData.data || userData;
+            hasCalData = record && record.cal && record.cal !== 0 && record.cal !== '0';
+          } else {
+            // Fallback ตรวจสอบกับ Airtable ชั่วคราวกรณี Backend ยังไม่มีเส้น GET
+            const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
+            const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
+            const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
+            if (apiToken && baseId && tableId) {
+              const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
+              const airtableResponse = await fetch(`${airtableUrl}?filterByFormula=${encodeURIComponent(`line_uid='${profileData.userId}'`)}`, {
+                headers: {
+                  'Authorization': `Bearer ${apiToken}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              const airtableData = await airtableResponse.json();
+              if (airtableData.records && airtableData.records.length > 0) {
+                const userRecord = airtableData.records[0].fields;
+                hasCalData = userRecord.Cal && userRecord.Cal !== '' && userRecord.Cal !== '0';
+              }
+            }
+          }
+        } catch (apiError) {
+          console.warn('Could not check user data:', apiError);
         }
 
         // เก็บข้อมูล user
@@ -154,10 +162,7 @@ const LineCallback = () => {
       className="min-h-screen bg-[#f2f2f7] flex items-center justify-center"
       style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
     >
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#007aff] mx-auto mb-4"></div>
-        <p className="text-[15px] text-[#8e8e93]">กำลังเข้าสู่ระบบ...</p>
-      </div>
+      <LoadingOverlay show={true} message="กำลังเข้าสู่ระบบและตรวจสอบข้อมูล..." />
     </div>
   );
 };

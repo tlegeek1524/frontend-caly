@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../../../components/BottomNav/BottomNav';
+import LoadingOverlay from '../../../components/Loading/LoadingOverlay';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -17,25 +18,44 @@ const Profile = () => {
     }
   }, [navigate]);
 
-  // ดึงข้อมูลจาก Airtable
+  // ดึงข้อมูลผู้ใช้
   useEffect(() => {
     const loadUserData = async () => {
       if (!user?.id) return;
 
       try {
+        const response = await fetch(`/api/v1/user/${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          const record = data.data || data;
+          if (record && (record.cal || record.weight || record.gender)) {
+            setUserData({
+              Gender: record.gender || record.Gender,
+              Weight: record.weight || record.Weight,
+              Height: record.height || record.Height,
+              Age: record.age || record.Age,
+              'Activity Level': record.activity_level || record.activityLevel || record['Activity Level'],
+              Goal: record.goal || record.Goal,
+              Cal: record.cal || record.Cal
+            });
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Fallback จาก Airtable ชั่วคราวถ้า Backend ยังไม่มีเส้น GET
         const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_TDEE;
         const baseId = import.meta.env.VITE_AIRTABLE_BASE_TDEE;
         const tableId = import.meta.env.VITE_AIRTABLE_TABLE_TDEE;
-        
-        const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-        
-        const response = await fetch(`${url}?filterByFormula=${encodeURIComponent(`line_uid='${user.id}'`)}`, {
-          headers: { 'Authorization': `Bearer ${apiToken}` }
-        });
-        const data = await response.json();
-        
-        if (data.records && data.records.length > 0) {
-          setUserData(data.records[0].fields);
+        if (apiToken && baseId && tableId) {
+          const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
+          const res = await fetch(`${url}?filterByFormula=${encodeURIComponent(`line_uid='${user.id}'`)}`, {
+            headers: { 'Authorization': `Bearer ${apiToken}` }
+          });
+          const data = await res.json();
+          if (data.records && data.records.length > 0) {
+            setUserData(data.records[0].fields);
+          }
         }
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -81,13 +101,10 @@ const Profile = () => {
             <p className="text-[13px] text-[#8e8e93]">LINE User ID: {user.id}</p>
           </div>
 
-          {/* Loading */}
-          {isLoading ? (
-            <div className="bg-white rounded-[12px] p-6 shadow-sm text-center">
-              <div className="w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-              <p className="text-[15px] text-[#8e8e93]">กำลังโหลดข้อมูล...</p>
-            </div>
-          ) : userData ? (
+          {/* Loading Overlay */}
+          <LoadingOverlay show={isLoading} message="กำลังโหลดข้อมูล..." />
+
+          {userData ? (
             <>
               {/* Personal Info */}
               <div className="bg-white rounded-[12px] overflow-hidden shadow-sm">
@@ -122,24 +139,22 @@ const Profile = () => {
                   <h5 className="text-[13px] font-semibold text-[#8e8e93] uppercase">กิจกรรมและเป้าหมาย</h5>
                 </div>
                 <div className="divide-y divide-[#e5e5ea]">
-                  <div className="px-4 py-3">
-                    <span className="text-[13px] text-[#8e8e93] block mb-1">ระดับกิจกรรม</span>
-                    <span className="text-[15px] text-black">
-                      {userData['Activity Level'] === 'sedentary' && 'นั่งทำงานเป็นส่วนใหญ่'}
-                      {userData['Activity Level'] === 'light' && 'ออกกำลังกายเบาๆ 1-3 วัน/สัปดาห์'}
-                      {userData['Activity Level'] === 'moderate' && 'ออกกำลังกายปานกลาง 3-5 วัน/สัปดาห์'}
-                      {userData['Activity Level'] === 'active' && 'ออกกำลังกายหนัก 6-7 วัน/สัปดาห์'}
-                      {userData['Activity Level'] === 'very_active' && 'ออกกำลังกายหนักมาก หรือมีงานใช้แรง'}
-                      {!userData['Activity Level'] && '-'}
+                  <div className="px-4 py-3 flex justify-between items-center">
+                    <span className="text-[15px] text-[#8e8e93]">กิจกรรม</span>
+                    <span className="text-[15px] text-black font-medium">
+                      {userData.ActivityLevel === 'sedentary' ? 'นั่งทำงานอยู่กับที่' :
+                       userData.ActivityLevel === 'light' ? 'ออกกำลังกายเบาๆ' :
+                       userData.ActivityLevel === 'moderate' ? 'ออกกำลังกายปานกลาง' :
+                       userData.ActivityLevel === 'active' ? 'ออกกำลังกายหนัก' :
+                       userData.ActivityLevel === 'veryActive' ? 'ออกกำลังกายหนักมาก' : '-'}
                     </span>
                   </div>
-                  <div className="px-4 py-3">
-                    <span className="text-[13px] text-[#8e8e93] block mb-1">เป้าหมาย</span>
-                    <span className="text-[15px] text-black">
-                      {userData.Goal === 'maintain' && 'คงน้ำหนัก'}
-                      {userData.Goal === 'lose' && 'ลดน้ำหนัก'}
-                      {userData.Goal === 'gain' && 'เพิ่มน้ำหนัก'}
-                      {!userData.Goal && '-'}
+                  <div className="px-4 py-3 flex justify-between items-center">
+                    <span className="text-[15px] text-[#8e8e93]">เป้าหมาย</span>
+                    <span className="text-[15px] text-black font-medium">
+                      {userData.Goal === 'lose' ? 'ลดน้ำหนัก' :
+                       userData.Goal === 'maintain' ? 'รักษาน้ำหนัก' :
+                       userData.Goal === 'gain' ? 'เพิ่มน้ำหนัก' : '-'}
                     </span>
                   </div>
                 </div>
@@ -165,7 +180,7 @@ const Profile = () => {
                 <span className="text-[17px] font-semibold text-green-500">แก้ไขข้อมูล</span>
               </button>
             </>
-          ) : (
+          ) : !isLoading && (
             <div className="bg-white rounded-[12px] p-6 shadow-sm text-center">
               <svg className="w-16 h-16 text-[#8e8e93] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />

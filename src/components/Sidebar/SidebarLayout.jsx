@@ -7,7 +7,7 @@ import {
   CssBaseline,
 } from "@mui/material";
 import { Outlet } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import LoadingOverlay from "../Loading/LoadingOverlay";
 import Navbar from "../navbar/navbar";
 import Sidebar from "./Sidebar";
 import { fetchWithAuth } from "../../utils/api";
@@ -76,17 +76,7 @@ const SidebarLayout = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#f8fafc]">
-        <div className="relative">
-          <div className="absolute inset-0 bg-blue-400 blur-3xl opacity-10 animate-pulse"></div>
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin relative z-10" />
-        </div>
-        <p className="mt-4 font-black text-gray-400 uppercase tracking-widest text-[10px] animate-pulse">
-          กำลังเตรียมข้อมูลระบบ...
-        </p>
-      </div>
-    );
+    return <LoadingOverlay show={true} message="กำลังเตรียมข้อมูลระบบ..." />;
   }
 
   return (

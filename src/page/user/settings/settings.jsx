@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LogOut, AlertTriangle, X } from 'lucide-react';
 import BottomNav from '../../../components/BottomNav/BottomNav';
 
 const Settings = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -15,11 +17,9 @@ const Settings = () => {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    if (window.confirm('คุณต้องการออกจากระบบหรือไม่?')) {
-      localStorage.removeItem('user');
-      navigate('/linelogin');
-    }
+  const confirmLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/linelogin');
   };
 
   const handleOpenCamera = () => {
@@ -66,12 +66,10 @@ const Settings = () => {
 
         {/* Logout Button */}
         <button
-          onClick={handleLogout}
-          className="w-full bg-white rounded-[12px] p-4 shadow-sm hover:bg-red-50 active:bg-red-100 transition-colors flex items-center justify-center gap-2"
+          onClick={() => setShowLogoutModal(true)}
+          className="w-full bg-white rounded-[12px] p-4 shadow-sm hover:bg-red-50 active:bg-red-100 transition-all flex items-center justify-center gap-2 border border-transparent hover:border-red-100"
         >
-          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
+          <LogOut className="w-5 h-5 text-red-500" />
           <span className="text-[17px] font-semibold text-red-500">ออกจากระบบ</span>
         </button>
 
@@ -80,6 +78,47 @@ const Settings = () => {
           <p className="text-[13px] text-[#8e8e93]">Calories Daily v2.4</p>
         </div>
       </div>
+
+      {/* Tailwind Logout Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+          <div 
+            className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center transform transition-all animate-slideUp border border-slate-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div className="w-14 h-14 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-red-50/50">
+              <LogOut className="w-7 h-7 stroke-[2.2]" />
+            </div>
+
+            {/* Title & Desc */}
+            <h3 className="text-[19px] font-bold text-slate-900 mb-1.5">
+              ยืนยันการออกจากระบบ?
+            </h3>
+            <p className="text-[14px] text-slate-500 mb-6 leading-relaxed">
+              คุณจะต้องเข้าสู่ระบบใหม่อีกครั้งเพื่อเข้าถึงข้อมูลสุขภาพและบันทึกอาหารของคุณ
+            </p>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                className="w-full py-3 text-[15px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-xl transition-all"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                className="w-full py-3 text-[15px] font-semibold text-white bg-red-500 hover:bg-red-600 active:scale-95 rounded-xl shadow-sm transition-all"
+              >
+                ออกจากระบบ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <BottomNav onCameraClick={handleOpenCamera} />

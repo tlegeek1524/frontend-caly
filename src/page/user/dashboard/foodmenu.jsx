@@ -1,168 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import OpenAI from 'openai';
+import toast from 'react-hot-toast';
 import BottomNav from '../../../components/BottomNav/BottomNav';
+import LoadingOverlay from '../../../components/Loading/LoadingOverlay';
+import { 
+  createMenuService, 
+  getMenusService, 
+  createMenuAfterService, 
+  getMenusAfterService, 
+  calculateDailyNutrition 
+} from '../../../services/menu.service';
 
-// Airtable Functions
+// Menu API Functions
 const fetchFoodRecords = async (lineUid, selectedDate) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
-  
   try {
-    let allRecords = [];
-    let offset = null;
-    
-    // ดึงข้อมูลทั้งหมดด้วย pagination
-    do {
-      const url = offset 
-        ? `https://api.airtable.com/v0/${baseId}/${tableId}?offset=${offset}`
-        : `https://api.airtable.com/v0/${baseId}/${tableId}`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      
-      if (data.records) {
-        allRecords = allRecords.concat(data.records);
-      }
-      
-      offset = data.offset;
-    } while (offset);
-    
-    if (!allRecords.length) return [];
-    
-    const records = allRecords
-      .filter(record => {
-        const fields = record.fields;
-        if (fields.line_uid !== lineUid) return false;
-        const recordDate = fields.date || '2000-01-01T00:00:00.000Z';
-        const recordDateTime = new Date(recordDate);
-        const recordDateStr = recordDateTime.toISOString().split('T')[0];
-        return recordDateStr === selectedDate;
-      })
-      .map(record => ({
-        id: record.id,
-        menu: record.fields.menu || 'ไม่ระบุเมนู',
-        date: record.fields.date,
-        cal: record.fields.cal || 0,
-        protein: record.fields.protine || 0,
-        carb: record.fields.carb || 0,
-        fat: record.fields.fat || 0,
-        image: record.fields.image?.[0]?.url || null,
-        runnum: record.fields.runnum || null
-      }))
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    return records;
+    const res = await getMenusService(lineUid, selectedDate);
+    if (res.success && res.data) {
+      return res.data;
+    }
+    return [];
   } catch (error) {
     console.error('Error fetching food records:', error);
     return [];
-  }
-};
-
-// ดึงข้อมูลอาหารหลังกินจาก Table2
-const fetchFoodAfterRecords = async (lineUid) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD_AFTER;
-  
-  try {
-    let allRecords = [];
-    let offset = null;
-    
-    do {
-      const url = offset 
-        ? `https://api.airtable.com/v0/${baseId}/${tableId}?offset=${offset}`
-        : `https://api.airtable.com/v0/${baseId}/${tableId}`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      
-      if (data.records) {
-        allRecords = allRecords.concat(data.records);
-      }
-      
-      offset = data.offset;
-    } while (offset);
-    
-    if (!allRecords.length) return [];
-    
-    // กรองเฉพาะ line_uid เท่านั้น (ไม่กรองวันที่)
-    const records = allRecords
-      .filter(record => record.fields.line_uid === lineUid)
-      .map(record => ({
-        id: record.id,
-        menu: record.fields.menu || 'ไม่ระบุเมนู',
-        date: record.fields.date,
-        cal: record.fields.cal || 0,
-        protein: record.fields.protine || 0,
-        carb: record.fields.carb || 0,
-        fat: record.fields.fat || 0,
-        image: record.fields.image?.[0]?.url || null,
-        runnum: record.fields.runnum || null,
-        mash: record.fields.mash || null,
-        eatPercent: record.fields.EatPercent || 0
-      }));
-    
-    return records;
-  } catch (error) {
-    console.error('❌ Error fetching food after records:', error);
-    return [];
-  }
-};
-
-const deleteFoodRecord = async (recordId) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
-  
-  const url = `https://api.airtable.com/v0/${baseId}/${tableId}/${recordId}`;
-  
-  try {
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('Error deleting record:', error);
-    return false;
-  }
-};
-
-// ลบรายการหลังกินจาก Table2
-const deleteFoodAfterRecord = async (recordId) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD_AFTER;
-  
-  const url = `https://api.airtable.com/v0/${baseId}/${tableId}/${recordId}`;
-  
-  try {
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('Error deleting after record:', error);
-    return false;
   }
 };
 
@@ -255,113 +115,88 @@ const compressImage = async (file, maxSizeMB = 1, maxWidthOrHeight = 1920) => {
 };
 
 const addFoodRecord = async (lineUid, foodData, imageFile) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD;
-  
-  const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-  
   try {
-    // Compress และอัพโหลดรูปภาพ
-    let imageAttachment = null;
+    let imageUrl = "";
     if (imageFile) {
       const compressedFile = await compressImage(imageFile, 1, 1920);
       
-      // อัพโหลดไป ImgBB
-      const imageUrl = await uploadImageToImgBB(compressedFile);
-      
-      // Airtable รับ attachment ในรูปแบบ URL
-      imageAttachment = [{
-        url: imageUrl
-      }];
+      // อัพโหลดรูปภาพ
+      imageUrl = await uploadImageToImgBB(compressedFile);
+      console.log('Uploaded Image URL/Path:', imageUrl);
     }
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type': 'application/json'
+    const payload = {
+      line_uid: lineUid,
+      menu: foodData.menu,
+      cal: Number(foodData.cal) || 0,
+      protein: Number(foodData.protein) || 0,
+      carb: Number(foodData.carb) || 0,
+      fat: Number(foodData.fat) || 0,
+      date: new Date().toISOString(),
+      image_url: imageUrl || "",
+      runnum: "1",
+      mash: foodData.mash || "lunch",
+      eat_percent: 100
+    };
+
+    const { success, data, error } = await createMenuService(payload);
+
+    if (!success) {
+      console.error('Error from createMenuService:', error);
+      throw new Error(error?.message || 'Failed to save record via API');
+    }
+    
+    return {
+      fields: {
+        ...payload,
+        image: imageUrl ? [{ url: imageUrl }] : []
       },
-      body: JSON.stringify({
-        fields: {
-          line_uid: lineUid,
-          menu: foodData.menu,
-          cal: foodData.cal,
-          protine: foodData.protein,
-          carb: foodData.carb,
-          fat: foodData.fat,
-          date: new Date().toISOString(),
-          ...(imageAttachment && { image: imageAttachment })
-        }
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Airtable Error:', errorData);
-      throw new Error(errorData.error?.message || 'Failed to save record');
-    }
-    
-    return await response.json();
+      data
+    };
   } catch (error) {
     console.error('Error adding food record:', error);
     return null;
   }
 };
 
-// ฟังก์ชันบันทึกข้อมูลหลังกินลง Table2
-const addFoodAfterRecord = async (lineUid, foodData, imageFile, originalRunnum, eatPercent) => {
-  const apiToken = import.meta.env.VITE_AIRTABLE_TOKEN_FOOD;
-  const baseId = import.meta.env.VITE_AIRTABLE_BASE_FOOD;
-  const tableId = import.meta.env.VITE_AIRTABLE_TABLE_FOOD_AFTER; // Table2
-  
-  const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-  
+// ฟังก์ชันบันทึกข้อมูลหลังกินลง Backend API (POST /api/v1/menus/after)
+const addFoodAfterRecord = async (lineUid, foodData, imageFile, originalRunnum, eatPercent, foodMenuId = null) => {
   try {
-    // Compress และอัพโหลดรูปภาพหลังกิน
-    let imageAttachment = null;
+    let imageUrl = '';
     if (imageFile) {
       const compressedFile = await compressImage(imageFile, 1, 1920);
-      
-      // อัพโหลดไป ImgBB
-      const imageUrl = await uploadImageToImgBB(compressedFile);
-      
-      // Airtable รับ attachment ในรูปแบบ URL
-      imageAttachment = [{
-        url: imageUrl
-      }];
+      imageUrl = await uploadImageToImgBB(compressedFile);
+      console.log('Uploaded After Image URL/Path:', imageUrl);
     }
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type': 'application/json'
+    const payload = {
+      food_menu_id: foodMenuId || foodData.food_menu_id || 1,
+      line_uid: lineUid,
+      cal: Number(foodData.cal) || 0,
+      protein: Number(foodData.protein) || 0,
+      carb: Number(foodData.carb) || 0,
+      fat: Number(foodData.fat) || 0,
+      eat_percent: Math.round(eatPercent),
+      image_url: imageUrl || '',
+      mash: foodData.mash || 'lunch',
+      runnum: originalRunnum ? String(originalRunnum) : '1',
+      date: new Date().toISOString()
+    };
+
+    const { success, data, error } = await createMenuAfterService(payload);
+
+    if (!success) {
+      console.error('❌ Error from createMenuAfterService:', error);
+      throw new Error(error?.message || 'Failed to save after food record');
+    }
+
+    return {
+      fields: {
+        ...payload,
+        image: imageUrl ? [{ url: imageUrl }] : []
       },
-      body: JSON.stringify({
-        fields: {
-          line_uid: lineUid,
-          menu: foodData.menu,
-          cal: foodData.cal,
-          protine: foodData.protein,
-          carb: foodData.carb,
-          fat: foodData.fat,
-          date: new Date().toISOString().split('T')[0], // รูปแบบ "2026-05-13"
-          mash: originalRunnum, // เลข runnum จากรูปก่อนกิน
-          EatPercent: Math.round(eatPercent), // % ที่กิน (เลขจำนวนเต็ม)
-          ...(imageAttachment && { image: imageAttachment })
-        }
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('❌ Airtable Error:', errorData);
-      throw new Error(errorData.error?.message || 'Failed to save after food record');
-    }
-    
-    const result = await response.json();
-    return result;
+      data
+    };
   } catch (error) {
     console.error('❌ Error adding food after record:', error);
     return null;
@@ -429,13 +264,24 @@ const analyzeFoodImage = async (imageFile) => {
 
 const FoodMenu = () => {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [displayDate, setDisplayDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // ดึงวันที่ปัจจุบันตาม Local Timezone (YYYY-MM-DD)
+  const getTodayLocalDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getTodayLocalDate);
+  const [displayDate, setDisplayDate] = useState(getTodayLocalDate);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [foodRecords, setFoodRecords] = useState([]);
+  const [foodAfterRecords, setFoodAfterRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNoDataModal, setShowNoDataModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -444,9 +290,7 @@ const FoodMenu = () => {
   const [pendingImagePreview, setPendingImagePreview] = useState(null);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
-  const [compareResult, setCompareResult] = useState(null);
   const [selectedFoodForCompare, setSelectedFoodForCompare] = useState(null);
-  const [foodAfterRecords, setFoodAfterRecords] = useState([]);
   const [showManualPercentModal, setShowManualPercentModal] = useState(false);
   const [manualPercent, setManualPercent] = useState(50);
   const [aiSuggestedPercent, setAiSuggestedPercent] = useState(0);
@@ -469,19 +313,21 @@ const FoodMenu = () => {
     }
   }, [user, navigate]);
 
-  // ดึงรายการอาหารครั้งแรก
+  // ดึงรายการอาหารและอาหารหลังกินจาก Backend API
   useEffect(() => {
     if (!user || !user.id) return;
     
     const loadData = async () => {
       setLoading(true);
       try {
-        const [records, afterRecords] = await Promise.all([
+        const [records, afterRes] = await Promise.all([
           fetchFoodRecords(user.id, displayDate),
-          fetchFoodAfterRecords(user.id) // ไม่ส่ง selectedDate
+          getMenusAfterService(user.id)
         ]);
         setFoodRecords(records);
-        setFoodAfterRecords(afterRecords);
+        if (afterRes.success && afterRes.data) {
+          setFoodAfterRecords(afterRes.data);
+        }
       } catch (error) {
         console.error('❌ Error loading data:', error);
       } finally {
@@ -498,12 +344,14 @@ const FoodMenu = () => {
     
     setLoading(true);
     try {
-      const [records, afterRecords] = await Promise.all([
+      const [records, afterRes] = await Promise.all([
         fetchFoodRecords(user.id, selectedDate),
-        fetchFoodAfterRecords(user.id) // ไม่ส่ง selectedDate
+        getMenusAfterService(user.id)
       ]);
       setFoodRecords(records);
-      setFoodAfterRecords(afterRecords);
+      if (afterRes.success && afterRes.data) {
+        setFoodAfterRecords(afterRes.data);
+      }
       setDisplayDate(selectedDate);
       
       // ถ้าไม่มีข้อมูล แสดง popup
@@ -663,10 +511,35 @@ const FoodMenu = () => {
         reader.onerror = error => reject(error);
       });
       
-      // ดึงรูปก่อนกินจาก URL
-      const beforeImageUrl = selectedFoodForCompare.image;
+      // ตรวจสอบ URL รูปก่อนกิน และแปลงเป็น Base64 ถ้าเป็น URL ภายนอกหรือดึงตรง
+      let beforeImageForAi = selectedFoodForCompare.image || selectedFoodForCompare.image_url;
+      if (!beforeImageForAi) {
+        throw new Error('ไม่พบรูปภาพอาหารก่อนกิน');
+      }
+
+      // ถ้าเป็น URL ให้แปลงเป็น Base64 หรือส่งตรง
+      try {
+        if (beforeImageForAi.startsWith('http')) {
+          const imgRes = await fetch(beforeImageForAi);
+          if (imgRes.ok) {
+            const blob = await imgRes.blob();
+            beforeImageForAi = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(blob);
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = () => resolve(selectedFoodForCompare.image);
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Cannot convert before image to base64, using direct URL:', err);
+      }
       
       const API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+      if (!API_KEY) {
+        throw new Error('ไม่พบ VITE_OPENAI_API_KEY ในระบบ');
+      }
+
       const openai = new OpenAI({
         apiKey: API_KEY,
         dangerouslyAllowBrowser: true
@@ -698,7 +571,12 @@ const FoodMenu = () => {
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
+        response_format: { type: "json_object" },
         messages: [
+          {
+            role: "system",
+            content: "You are an expert dietary visual estimation assistant. Your task is to compare before and after images of a meal and estimate the visual percentage of food consumed (0 to 100). You MUST ALWAYS provide your best estimate in the exact JSON format requested, without refusal or conversational disclaimer."
+          },
           {
             role: "user",
             content: [
@@ -706,7 +584,7 @@ const FoodMenu = () => {
               {
                 type: "image_url",
                 image_url: {
-                  url: beforeImageUrl,
+                  url: beforeImageForAi,
                   detail: "high"
                 }
               },
@@ -740,12 +618,13 @@ const FoodMenu = () => {
         
         // แสดง modal ให้ผู้ใช้ปรับ % เอง
         setShowManualPercentModal(true);
+        toast.success(`วิเคราะห์สำเร็จ! ประเมินว่าทานไป ~${Math.round(result.percentEaten)}%`);
       } else {
         throw new Error('ไม่สามารถแปลง response เป็น JSON ได้');
       }
     } catch (error) {
       console.error('❌ เกิดข้อผิดพลาด:', error);
-      alert('ไม่สามารถเปรียบเทียบรูปภาพได้ กรุณาลองใหม่');
+      toast.error(error.message || 'ไม่สามารถเปรียบเทียบรูปภาพได้ กรุณาลองใหม่');
       setIsComparing(false);
       setSelectedFoodForCompare(null);
     }
@@ -922,23 +801,27 @@ const FoodMenu = () => {
         afterFoodData,
         pendingAfterImage,
         selectedFoodForCompare.runnum,
-        manualPercent
+        manualPercent,
+        selectedFoodForCompare.id
       );
       
       if (saveResult) {
-        // รีโหลดข้อมูล
-        const [records, afterRecords] = await Promise.all([
+        // รีโหลดข้อมูลทั้งหมดทั้งก่อนกินและหลังกิน เพื่อให้ UI อัปเดตทันที
+        const [records, afterRes] = await Promise.all([
           fetchFoodRecords(user.id, displayDate),
-          fetchFoodAfterRecords(user.id)
+          getMenusAfterService(user.id)
         ]);
         setFoodRecords(records);
-        setFoodAfterRecords(afterRecords);
+        if (afterRes.success && afterRes.data) {
+          setFoodAfterRecords(afterRes.data);
+        }
+        toast.success('บันทึกข้อมูลหลังกินเรียบร้อยแล้ว!');
       } else {
         throw new Error('ไม่สามารถบันทึกข้อมูลได้');
       }
     } catch (error) {
       console.error('❌ เกิดข้อผิดพลาด:', error);
-      alert('เกิดข้อผิดพลาดในการบันทึก');
+      toast.error('เกิดข้อผิดพลาดในการบันทึก');
     } finally {
       setLoading(false);
       setSelectedFoodForCompare(null);
@@ -956,32 +839,11 @@ const FoodMenu = () => {
     setAiSuggestedPercent(0);
   };
 
-  // คำนวณสรุปโภชนาการ - ใช้ค่าจริงที่กินไป
-  // ถ้ามีรูปหลังกิน (Table2) ให้ใช้ค่าจาก Table2
-  // ถ้าไม่มีรูปหลังกิน ให้ใช้ค่าจาก Table1 (ก่อนกิน)
-  let totalCal = 0;
-  let totalProtein = 0;
-  let totalCarb = 0;
-  let totalFat = 0;
-
-  foodRecords.forEach(record => {
-    // หาข้อมูลหลังกินที่ตรงกับ runnum
-    const afterData = foodAfterRecords.find(after => after.mash === record.runnum);
-    
-    if (afterData) {
-      // ถ้ามีรูปหลังกิน ใช้ค่าจาก Table2
-      totalCal += afterData.cal || 0;
-      totalProtein += afterData.protein || 0;
-      totalCarb += afterData.carb || 0;
-      totalFat += afterData.fat || 0;
-    } else {
-      // ถ้าไม่มีรูปหลังกิน ใช้ค่าจาก Table1
-      totalCal += record.cal || 0;
-      totalProtein += record.protein || 0;
-      totalCarb += record.carb || 0;
-      totalFat += record.fat || 0;
-    }
-  });
+  // คำนวณสรุปโภชนาการจาก Business Logic Service (คำนวณเฉพาะมื้อที่ทานเสร็จสิ้นแล้ว)
+  const { totalCal, totalProtein, totalCarb, totalFat } = calculateDailyNutrition(
+    foodRecords,
+    foodAfterRecords
+  );
 
   return (
     <div 
@@ -1036,11 +898,11 @@ const FoodMenu = () => {
           </h5>
           <div className="space-y-2.5 sm:space-y-3">
             {foodRecords.map((item, index) => {
-              // หาข้อมูลหลังกินที่ตรงกับ runnum (Table1) = mash (Table2)
-              const afterData = foodAfterRecords.find(after => {
-                return after.mash == item.runnum || String(after.mash) === String(item.runnum);
-              });
-              
+              // หาข้อมูลหลังกินที่ตรงกับ food_menu_id ของรายการอาหารนี้เท่านั้น (item.id === after.food_menu_id)
+              const afterData = foodAfterRecords.find(after => 
+                Number(after.food_menu_id) === Number(item.id)
+              );
+
               return (
                 <div 
                   key={item.id} 
@@ -1050,7 +912,7 @@ const FoodMenu = () => {
                   <div className="bg-[#f2f2f7] px-3 sm:px-4 py-2 flex justify-between items-center border-b border-[#e5e5ea]">
                     <span className="text-[14px] sm:text-[15px] font-semibold text-black truncate flex-1 mr-2">{item.menu}</span>
                     <span className="text-[12px] sm:text-[13px] text-[#8e8e93] shrink-0">
-                      {new Date(item.date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                      {item.date ? new Date(item.date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'}
                     </span>
                   </div>
                 <div className="p-3 sm:p-4">
@@ -1058,16 +920,22 @@ const FoodMenu = () => {
                   <div className="mb-3 sm:mb-4">
                     <div className="text-[12px] sm:text-[13px] font-semibold text-green-600 mb-1.5 sm:mb-2">🍽️ ก่อนกิน</div>
                     <div className="flex gap-2.5 sm:gap-3 items-start">
-                      <img 
-                        src={item.image} 
-                        alt={item.menu}
-                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover bg-[#f2f2f7] shrink-0"
-                      />
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.menu}
+                          className="w-16 h-16 sm:w-18 sm:h-18 rounded-lg object-cover bg-[#f2f2f7] shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-[#f2f2f7] flex items-center justify-center text-gray-400 text-xs">
+                          ไม่มีรูป
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                           <div className="flex items-center gap-1">
                             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 shrink-0"></div>
-                            <span className="text-[12px] sm:text-[13px] text-[#8e8e93] truncate">{item.cal} kcal</span>
+                            <span className="text-[12px] sm:text-[13px] text-gray-800 font-semibold truncate">{item.cal} kcal</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shrink-0"></div>
@@ -1090,31 +958,37 @@ const FoodMenu = () => {
                   {afterData && (
                     <div className="mb-2.5 sm:mb-3 pt-2.5 sm:pt-3 border-t border-[#e5e5ea]">
                       <div className="text-[12px] sm:text-[13px] font-semibold text-blue-600 mb-1.5 sm:mb-2">
-                         หลังกิน (กินไป {afterData.eatPercent}%)
+                        🥣 หลังกิน (ทานไป {afterData.eat_percent ?? afterData.eatPercent}%)
                       </div>
                       <div className="flex gap-2.5 sm:gap-3 items-start">
-                        <img 
-                          src={afterData.image} 
-                          alt={`${item.menu} - หลังกิน`}
-                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover bg-[#f2f2f7] shrink-0"
-                        />
+                        {afterData.image ? (
+                          <img 
+                            src={afterData.image} 
+                            alt={`${item.menu} - หลังกิน`}
+                            className="w-16 h-16 sm:w-18 sm:h-18 rounded-lg object-cover bg-[#f2f2f7] shrink-0"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-[#f2f2f7] flex items-center justify-center text-gray-400 text-xs">
+                            ไม่มีรูป
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                             <div className="flex items-center gap-1">
                               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 shrink-0"></div>
-                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-medium truncate">{afterData.cal} kcal</span>
+                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-semibold truncate">{afterData.cal} kcal</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shrink-0"></div>
-                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-medium truncate">{afterData.protein}g โปรตีน</span>
+                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-semibold truncate">{afterData.protein}g โปรตีน</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500 shrink-0"></div>
-                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-medium truncate">{afterData.carb}g คาร์บ</span>
+                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-semibold truncate">{afterData.carb}g คาร์บ</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 shrink-0"></div>
-                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-medium truncate">{afterData.fat}g ไขมัน</span>
+                              <span className="text-[12px] sm:text-[13px] text-blue-600 font-semibold truncate">{afterData.fat}g ไขมัน</span>
                             </div>
                           </div>
                         </div>
@@ -1122,45 +996,17 @@ const FoodMenu = () => {
                     </div>
                   )}
 
-                  {/* ปุ่มต่างๆ */}
-                  <div className="space-y-1.5 sm:space-y-2">
-                    {/* ปุ่มเปรียบเทียบ - แสดงเฉพาะเมื่อยังไม่มีรูปหลังกิน */}
-                    {!afterData && (
+                  {/* ปุ่มเปรียบเทียบอาหารหลังกิน - แสดงเมื่อยังไม่มีข้อมูลหลังกิน */}
+                  {!afterData && (
+                    <div className="pt-2 border-t border-[#e5e5ea] flex justify-between items-center">
                       <button
                         onClick={() => handleCompareFood(item)}
-                        className="w-full text-[12px] sm:text-[13px] text-blue-500 font-medium hover:text-blue-600 transition-colors text-left"
+                        className="text-[13px] text-emerald-600 font-medium hover:text-emerald-700 transition-colors flex items-center gap-1"
                       >
-                        เปรียบเทียบอาหารหลังกิน
+                        <span>📸</span> เปรียบเทียบอาหารหลังกิน
                       </button>
-                    )}
-                    
-                    {/* ปุ่มลบ - แสดงตามเงื่อนไข */}
-                    {afterData ? (
-                      // มีรูปหลังกิน - แสดง 2 ปุ่ม
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleDeleteAfter(afterData.id)}
-                          className="flex-1 text-[12px] sm:text-[13px] text-orange-500 font-medium hover:text-orange-600 transition-colors"
-                        >
-                          ลบรูปหลังกิน
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBoth(item.id, afterData.id)}
-                          className="px-3 sm:px-4 py-1.5 sm:py-2 text-[12px] sm:text-[13px] text-white font-semibold bg-red-600 rounded-lg hover:bg-red-700 active:scale-[0.98] transition-all duration-200"
-                        >
-                          ลบทั้งหมด
-                        </button>
-                      </div>
-                    ) : (
-                      // ไม่มีรูปหลังกิน - แสดงปุ่มลบปกติ
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="text-[12px] sm:text-[13px] text-red-500 font-medium hover:text-red-600 transition-colors text-left"
-                      >
-                        ลบรายการ
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -1245,51 +1091,6 @@ const FoodMenu = () => {
         </div>
       )}
 
-      {/* Analyzing Modal */}
-      {isAnalyzing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[17px] font-semibold text-black">กำลังวิเคราะห์รูปภาพ...</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Loading Modal */}
-      {loading && !isAnalyzing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[17px] font-semibold text-black">กำลังโหลดข้อมูล...</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* No Data Modal */}
-      {showNoDataModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn" onClick={() => setShowNoDataModal(false)}>
-          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center gap-3">
-              <svg className="w-16 h-16 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p className="text-[17px] font-semibold text-black text-center">ไม่มีข้อมูล</p>
-              <p className="text-[13px] text-[#8e8e93] text-center">ไม่พบรายการอาหารในวันที่เลือก</p>
-              <button
-                onClick={() => setShowNoDataModal(false)}
-                className="w-full mt-2 py-3 text-[15px] font-semibold text-white bg-gradient-to-r from-green-400 to-emerald-500 rounded-[12px] hover:from-green-500 hover:to-emerald-600 active:scale-[0.98] transition-all duration-200"
-              >
-                ตกลง
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Compare Food Modal */}
       {showCompareModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-fadeIn" onClick={() => setShowCompareModal(false)}>
@@ -1330,19 +1131,6 @@ const FoodMenu = () => {
                   ยกเลิก
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Comparing Modal */}
-      {isComparing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-white rounded-[20px] p-6 max-w-xs mx-4 animate-slideUp">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[17px] font-semibold text-black">กำลังเปรียบเทียบรูปภาพ...</p>
-              <p className="text-[13px] text-[#8e8e93] text-center">กรุณารอสักครู่</p>
             </div>
           </div>
         </div>
@@ -1541,6 +1329,18 @@ const FoodMenu = () => {
           </div>
         </div>
       )}
+
+      {/* Transparent Loading Overlay */}
+      <LoadingOverlay
+        show={loading || isAnalyzing || isComparing}
+        message={
+          isComparing
+            ? "กำลังเปรียบเทียบรูปภาพ..."
+            : isAnalyzing
+            ? "กำลังวิเคราะห์รูปภาพ..."
+            : "กำลังโหลดข้อมูล..."
+        }
+      />
     </div>
   );
 };
